@@ -1,0 +1,15 @@
+# Dépendances et builds
+node_modules
+dist
+.vite
+
+# Logs et diagnostics
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environnements
+.env
+.env.local
+.DS_Store
