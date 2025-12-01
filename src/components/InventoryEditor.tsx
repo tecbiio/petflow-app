@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { useEffect, useState } from "react";
 import { Product, StockLocation } from "../types";
 
 type Props = {
@@ -9,28 +7,24 @@ type Props = {
 };
 
 function InventoryEditor({ products, locations }: Props) {
-  const [productId, setProductId] = useState(products[0]?.id ?? "");
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
+  const [productId, setProductId] = useState<number>(products[0]?.id ?? 0);
+  const [locationId, setLocationId] = useState<number>(locations[0]?.id ?? 0);
   const [quantity, setQuantity] = useState(0);
   const [note, setNote] = useState("");
   const [mode, setMode] = useState<"partial" | "full">("partial");
-  const queryClient = useQueryClient();
+  const writesDisabled = true;
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.createInventory({
-        productId,
-        stockLocationId: locationId,
-        quantity,
-        note,
-        isPartial: mode === "partial",
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stock", productId] });
-      queryClient.invalidateQueries({ queryKey: ["inventories", productId] });
-      setNote("");
-    },
-  });
+  useEffect(() => {
+    if (products[0]?.id) {
+      setProductId(products[0].id);
+    }
+  }, [products]);
+
+  useEffect(() => {
+    if (locations[0]?.id) {
+      setLocationId(locations[0].id);
+    }
+  }, [locations]);
 
   return (
     <div className="glass-panel p-4">
@@ -41,6 +35,7 @@ function InventoryEditor({ products, locations }: Props) {
             type="button"
             onClick={() => setMode("partial")}
             className={`rounded-full px-3 py-1 ${mode === "partial" ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
+            disabled={writesDisabled}
           >
             Partiel
           </button>
@@ -48,18 +43,23 @@ function InventoryEditor({ products, locations }: Props) {
             type="button"
             onClick={() => setMode("full")}
             className={`rounded-full px-3 py-1 ${mode === "full" ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
+            disabled={writesDisabled}
           >
             Complet
           </button>
         </div>
       </div>
+      <p className="mt-2 text-xs text-ink-600">
+        La création d'inventaires n'est pas encore branchée côté API. Les contrôles restent visibles pour préparer le flux.
+      </p>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <label className="text-sm text-ink-700">
           Produit
           <select
             value={productId}
-            onChange={(e) => setProductId(e.target.value)}
+            onChange={(e) => setProductId(Number(e.target.value))}
             className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            disabled={writesDisabled}
           >
             {products.map((p) => (
               <option key={p.id} value={p.id}>
@@ -72,8 +72,9 @@ function InventoryEditor({ products, locations }: Props) {
           Emplacement
           <select
             value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
+            onChange={(e) => setLocationId(Number(e.target.value))}
             className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            disabled={writesDisabled}
           >
             {locations.map((l) => (
               <option key={l.id} value={l.id}>
@@ -89,6 +90,7 @@ function InventoryEditor({ products, locations }: Props) {
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
             className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            disabled={writesDisabled}
           />
         </label>
       </div>
@@ -100,16 +102,16 @@ function InventoryEditor({ products, locations }: Props) {
           onChange={(e) => setNote(e.target.value)}
           placeholder="Cycle count, contrôle réception…"
           className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+          disabled={writesDisabled}
         />
       </label>
       <div className="mt-3 flex items-center justify-end gap-2">
-        {mutation.isSuccess ? <p className="text-xs text-emerald-700">Inventaire enregistré</p> : null}
         <button
           type="button"
-          onClick={() => mutation.mutate()}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+          disabled
+          className="rounded-lg bg-ink-300 px-4 py-2 text-sm font-semibold text-white opacity-70"
         >
-          Valider l'inventaire
+          En attente côté API
         </button>
       </div>
     </div>

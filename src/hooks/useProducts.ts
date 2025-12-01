@@ -7,9 +7,9 @@ export const useProducts = () =>
     queryFn: api.listProducts,
   });
 
-export const useProduct = (productId: string) =>
+export const useProduct = (productId?: number) =>
   useQuery({
     queryKey: ["product", productId],
-    queryFn: () => api.getProduct(productId),
-    enabled: Boolean(productId),
+    queryFn: () => api.getProduct(productId as number),
+    enabled: Number.isInteger(productId),
   });

@@ -7,9 +7,11 @@ import { api } from "../api/client";
 import StockBadge from "../components/StockBadge";
 import { useStockLocations } from "../hooks/useStockLocations";
 
+const LOW_STOCK_FALLBACK = 5;
+
 function Products() {
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const { data: products = [], isLoading } = useProducts();
   const { data: locations = [] } = useStockLocations();
 
@@ -34,7 +36,7 @@ function Products() {
 
   const selected = useMemo(() => products.find((p) => p.id === selectedId) ?? filtered[0], [filtered, products, selectedId]);
   const selectedStock = selected
-    ? stockQueries[products.findIndex((p) => p.id === selected.id)]?.data?.quantity ?? 0
+    ? stockQueries[products.findIndex((p) => p.id === selected.id)]?.data?.stock ?? 0
     : undefined;
 
   return (
@@ -56,7 +58,7 @@ function Products() {
         {isLoading ? <p className="text-sm text-ink-500">Chargement…</p> : null}
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((product) => {
-            const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.quantity ?? 0;
+            const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.stock ?? 0;
             return (
               <ProductCard
                 key={product.id}
@@ -75,11 +77,11 @@ function Products() {
           <div className="mt-3 space-y-2">
             <p className="text-lg font-semibold text-ink-900">{selected.name}</p>
             <p className="text-sm text-ink-500">{selected.description}</p>
-            <StockBadge quantity={selectedStock} threshold={selected.threshold} />
+            <StockBadge quantity={selectedStock} threshold={LOW_STOCK_FALLBACK} />
             <div className="text-xs text-ink-600">
               <p>SKU: {selected.sku}</p>
-              <p>Unité: {selected.unit || "non spécifiée"}</p>
-              <p>Seuil: {selected.threshold ?? "—"}</p>
+              <p>Prix: {Number.isFinite(selected.price) ? `${selected.price.toFixed(2)} €` : "—"}</p>
+              <p>Créé le: {new Date(selected.createdAt).toLocaleDateString("fr-FR")}</p>
               <p>Emplacement par défaut: {locations.find((l) => l.isDefault)?.name ?? "—"}</p>
             </div>
             <Link

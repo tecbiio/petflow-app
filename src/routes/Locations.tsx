@@ -1,27 +1,11 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStockLocations } from "../hooks/useStockLocations";
-import { api } from "../api/client";
 
 function Locations() {
   const { data: locations = [] } = useStockLocations();
-  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-
-  const createMutation = useMutation({
-    mutationFn: () => api.createStockLocation({ name, code }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stockLocations"] });
-      setName("");
-      setCode("");
-    },
-  });
-
-  const defaultMutation = useMutation({
-    mutationFn: (locationId: string) => api.setDefaultStockLocation(locationId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stockLocations"] }),
-  });
+  const writesDisabled = true;
 
   return (
     <div className="space-y-4">
@@ -45,14 +29,15 @@ function Locations() {
               </div>
               <button
                 type="button"
-                onClick={() => defaultMutation.mutate(loc.id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${loc.isDefault ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
+                disabled
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${loc.isDefault ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"} cursor-not-allowed`}
               >
-                {loc.isDefault ? "Par défaut" : "Définir par défaut"}
+                {loc.isDefault ? "Par défaut" : "Lecture seule"}
               </button>
             </div>
           ))}
         </div>
+        {writesDisabled ? <p className="mt-2 text-xs text-amber-700">Définir un nouvel emplacement par défaut nécessite un endpoint PATCH dans le core.</p> : null}
       </div>
 
       <div className="glass-panel p-4">
@@ -65,6 +50,7 @@ function Locations() {
               onChange={(e) => setName(e.target.value)}
               className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
               placeholder="Entrepôt Paris"
+              disabled={writesDisabled}
             />
           </label>
           <label className="text-sm text-ink-700">
@@ -74,17 +60,17 @@ function Locations() {
               onChange={(e) => setCode(e.target.value)}
               className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
               placeholder="PAR"
+              disabled={writesDisabled}
             />
           </label>
         </div>
         <div className="mt-3 flex items-center justify-end gap-2">
-          {createMutation.isSuccess ? <p className="text-xs text-emerald-700">Emplacement ajouté</p> : null}
           <button
             type="button"
-            onClick={() => createMutation.mutate()}
-            className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            disabled
+            className="rounded-lg bg-ink-300 px-4 py-2 text-sm font-semibold text-white opacity-70"
           >
-            Créer
+            Bientôt disponible (API)
           </button>
         </div>
       </div>

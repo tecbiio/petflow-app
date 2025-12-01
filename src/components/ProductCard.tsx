@@ -8,6 +8,8 @@ type Props = {
   onPreview?: (product: Product) => void;
 };
 
+const LOW_STOCK_FALLBACK = 5;
+
 function ProductCard({ product, stock = 0, onPreview }: Props) {
   return (
     <div className="glass-panel flex flex-col gap-3 p-4 transition hover:-translate-y-0.5 hover:shadow-xl">
@@ -16,16 +18,10 @@ function ProductCard({ product, stock = 0, onPreview }: Props) {
           <p className="text-sm text-ink-500">{product.sku}</p>
           <p className="text-lg font-semibold text-ink-900">{product.name}</p>
         </div>
-        <StockBadge quantity={stock} threshold={product.threshold} />
+        <StockBadge quantity={stock} threshold={LOW_STOCK_FALLBACK} />
       </div>
       <p className="text-sm text-ink-600 line-clamp-2">{product.description}</p>
-      <div className="flex flex-wrap gap-2 text-xs">
-        {product.tags?.map((tag) => (
-          <span key={tag} className="pill bg-ink-100 text-ink-700">
-            {tag}
-          </span>
-        ))}
-      </div>
+      <p className="text-sm font-semibold text-brand-700">{Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}</p>
       <div className="mt-auto flex items-center justify-between text-sm font-semibold text-brand-700">
         <button
           type="button"

@@ -7,8 +7,10 @@ import { useStockLocations } from "../hooks/useStockLocations";
 import { api } from "../api/client";
 import { StockMovement } from "../types";
 
+const DEFAULT_THRESHOLD = 10;
+
 function Dashboard() {
-  const [threshold, setThreshold] = useState(10);
+  const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD);
   const { data: products = [], isLoading: loadingProducts } = useProducts();
   const { data: locations = [] } = useStockLocations();
 
@@ -34,9 +36,9 @@ function Dashboard() {
     return products
       .map((p, index) => ({
         product: p,
-        quantity: stockQueries[index]?.data?.quantity ?? 0,
+        quantity: stockQueries[index]?.data?.stock ?? 0,
       }))
-      .filter((item) => item.quantity < (item.product.threshold ?? threshold));
+      .filter((item) => item.quantity < threshold);
   }, [products, stockQueries, threshold]);
 
   const recentMovements: StockMovement[] = useMemo(() => {
@@ -79,18 +81,18 @@ function Dashboard() {
               lowStock.map(({ product, quantity }) => (
                 <div
                   key={product.id}
-                  className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-3 py-3 shadow-sm"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-ink-900">{product.name}</p>
-                    <p className="text-xs text-ink-500">{product.sku}</p>
-                  </div>
-                  <StockBadge quantity={quantity} threshold={product.threshold ?? threshold} />
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+              className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-3 py-3 shadow-sm"
+            >
+              <div>
+                <p className="text-sm font-semibold text-ink-900">{product.name}</p>
+                <p className="text-xs text-ink-500">{product.sku}</p>
+              </div>
+              <StockBadge quantity={quantity} threshold={threshold} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
 
         <div className="glass-panel p-4">
           <div className="flex items-center justify-between">
@@ -104,11 +106,11 @@ function Dashboard() {
               recentMovements.map((move) => (
                 <div key={move.id} className="rounded-lg bg-white px-3 py-2 shadow-sm">
                   <p className="text-sm font-semibold text-ink-900">
-                    {move.quantity > 0 ? "+" : ""}
-                    {move.quantity} • {move.reason || move.type}
+                    {move.quantityDelta > 0 ? "+" : ""}
+                    {move.quantityDelta} • {move.reason}
                   </p>
                   <p className="text-xs text-ink-500">
-                    {new Date(move.createdAt).toLocaleString("fr-FR")} – {move.reference || move.stockLocationId}
+                    {new Date(move.createdAt).toLocaleString("fr-FR")} – emplacement #{move.stockLocationId}
                   </p>
                 </div>
               ))

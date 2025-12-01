@@ -1,53 +1,43 @@
 export type Product = {
-  id: string;
+  id: number;
   name: string;
-  sku?: string;
-  description?: string;
-  threshold?: number;
-  unit?: string;
-  tags?: string[];
+  sku: string;
+  description: string | null;
+  price: number;
+  axonautProductId?: number | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type StockLocation = {
-  id: string;
+  id: number;
   name: string;
-  code?: string;
-  isDefault?: boolean;
-  address?: string;
-  note?: string;
+  code: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type StockMovement = {
-  id: string;
-  productId: string;
-  stockLocationId: string;
-  quantity: number;
-  type?: "IN" | "OUT" | "ADJUST";
-  reason?: string;
+  id: number;
+  productId: number;
+  stockLocationId: number;
+  quantityDelta: number;
+  reason: string;
   createdAt: string;
-  reference?: string;
 };
 
 export type Inventory = {
-  id: string;
-  productId: string;
-  stockLocationId: string;
+  id: number;
+  productId: number;
+  stockLocationId: number;
   quantity: number;
   createdAt: string;
-  note?: string;
+  updatedAt: string;
 };
 
 export type StockSnapshot = {
-  productId: string;
-  quantity: number;
-  at?: string;
+  stock: number;
 };
 
-export type StockVariation = {
-  id: string;
-  productId: string;
-  quantity: number;
-  createdAt: string;
-  stockLocationId?: string;
-  reason?: string;
-};
+export type StockVariation = StockMovement;

@@ -6,21 +6,25 @@ import { useInventoriesByProduct } from "../hooks/useInventories";
 import { useStockLocations } from "../hooks/useStockLocations";
 import StockBadge from "../components/StockBadge";
 
+const DEFAULT_THRESHOLD = 10;
+
 function ProductDetail() {
   const { productId = "" } = useParams();
-  const { data: product } = useProduct(productId);
-  const { data: stock } = useProductStock(productId);
-  const { data: variations = [] } = useProductVariations(productId);
-  const { data: movements = [] } = useMovementsByProduct(productId);
-  const { data: inventories = [] } = useInventoriesByProduct(productId);
+  const productNumericId = Number(productId);
+  const { data: product } = useProduct(productNumericId);
+  const { data: stock } = useProductStock(productNumericId);
+  const { data: variations = [] } = useProductVariations(productNumericId);
+  const { data: movements = [] } = useMovementsByProduct(productNumericId);
+  const { data: inventories = [] } = useInventoriesByProduct(productNumericId);
   const { data: locations = [] } = useStockLocations();
 
   if (!product) {
     return <p className="text-sm text-ink-600">Produit introuvable.</p>;
   }
 
-  const threshold = product.threshold ?? 0;
-  const ratio = threshold ? Math.min(1, (stock?.quantity ?? 0) / threshold) : 1;
+  const threshold = DEFAULT_THRESHOLD;
+  const stockQuantity = stock?.stock ?? 0;
+  const ratio = threshold ? Math.min(1, stockQuantity / threshold) : 1;
 
   return (
     <div className="space-y-6">
@@ -30,16 +34,12 @@ function ProductDetail() {
             <p className="text-xs uppercase tracking-wide text-ink-500">{product.sku}</p>
             <h2 className="text-2xl font-semibold text-ink-900">{product.name}</h2>
             <p className="text-sm text-ink-600">{product.description}</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              {product.tags?.map((tag) => (
-                <span key={tag} className="pill bg-ink-100 text-ink-700">
-                  {tag}
-                </span>
-              ))}
-            </div>
+            <p className="mt-2 text-sm font-semibold text-brand-700">
+              {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <StockBadge quantity={stock?.quantity} threshold={product.threshold} />
+            <StockBadge quantity={stock?.stock} threshold={threshold} />
             <Link
               to="/adjustments"
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
@@ -54,14 +54,14 @@ function ProductDetail() {
             <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all" style={{ width: `${ratio * 100}%` }} />
           </div>
           <p className="mt-1 text-xs text-ink-600">
-            {stock?.quantity ?? "—"} {product.unit || "unités"} disponibles – seuil {product.threshold ?? "non défini"}
+            {stockQuantity} unités disponibles – seuil {threshold}
           </p>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
             <p className="text-xs text-ink-500">Dernier inventaire</p>
             <p className="text-lg font-semibold text-ink-900">
-              {inventories[0]?.quantity ?? "—"} {product.unit || "unités"}
+              {inventories[0]?.quantity ?? "—"} unités
             </p>
             <p className="text-xs text-ink-500">
               {inventories[0] ? new Date(inventories[0].createdAt).toLocaleString("fr-FR") : "Aucun inventaire"}
@@ -96,10 +96,10 @@ function ProductDetail() {
                 <div key={move.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 shadow-sm">
                   <div>
                     <p className="text-sm font-semibold text-ink-900">
-                      {move.quantity > 0 ? "+" : ""}
-                      {move.quantity} {product.unit}
+                      {move.quantityDelta > 0 ? "+" : ""}
+                      {move.quantityDelta} unités
                     </p>
-                    <p className="text-xs text-ink-500">{move.reason || move.type}</p>
+                    <p className="text-xs text-ink-500">{move.reason}</p>
                   </div>
                   <p className="text-xs text-ink-500">{new Date(move.createdAt).toLocaleString("fr-FR")}</p>
                 </div>
@@ -121,8 +121,8 @@ function ProductDetail() {
                 <div key={variation.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 shadow-sm">
                   <div>
                     <p className="text-sm font-semibold text-ink-900">
-                      {variation.quantity > 0 ? "+" : ""}
-                      {variation.quantity} {product.unit}
+                      {variation.quantityDelta > 0 ? "+" : ""}
+                      {variation.quantityDelta} unités
                     </p>
                     <p className="text-xs text-ink-500">{variation.reason || variation.stockLocationId}</p>
                   </div>
@@ -146,12 +146,11 @@ function ProductDetail() {
             inventories.map((inv) => (
               <div key={inv.id} className="rounded-lg bg-white px-3 py-2 shadow-sm">
                 <p className="text-sm font-semibold text-ink-900">
-                  {inv.quantity} {product.unit}
+                  {inv.quantity} unités
                 </p>
                 <p className="text-xs text-ink-500">
                   {new Date(inv.createdAt).toLocaleString("fr-FR")} – {inv.stockLocationId}
                 </p>
-                {inv.note ? <p className="text-xs text-ink-600">{inv.note}</p> : null}
               </div>
             ))
           )}
