@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 
-export const useStockLocations = () =>
+type StockLocationFilter = {
+  active?: boolean;
+};
+
+export const useStockLocations = (filter?: StockLocationFilter) =>
   useQuery({
-    queryKey: ["stockLocations"],
-    queryFn: api.listStockLocations,
+    queryKey: ["stockLocations", filter?.active ?? "all"],
+    queryFn: () => api.listStockLocations(filter),
   });
 
 export const useDefaultStockLocation = () =>

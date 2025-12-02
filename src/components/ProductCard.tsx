@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Product } from "../types";
 import StockBadge from "./StockBadge";
+import { useProductThresholds } from "../hooks/useProductThresholds";
 
 type Props = {
   product: Product;
@@ -8,9 +9,10 @@ type Props = {
   onPreview?: (product: Product) => void;
 };
 
-const LOW_STOCK_FALLBACK = 5;
-
 function ProductCard({ product, stock = 0, onPreview }: Props) {
+  const { getThreshold } = useProductThresholds();
+  const threshold = getThreshold(product.id);
+
   return (
     <div className="glass-panel flex flex-col gap-3 p-4 transition hover:-translate-y-0.5 hover:shadow-xl">
       <div className="flex items-start justify-between gap-3">
@@ -18,7 +20,7 @@ function ProductCard({ product, stock = 0, onPreview }: Props) {
           <p className="text-sm text-ink-500">{product.sku}</p>
           <p className="text-lg font-semibold text-ink-900">{product.name}</p>
         </div>
-        <StockBadge quantity={stock} threshold={LOW_STOCK_FALLBACK} />
+        <StockBadge quantity={stock} threshold={threshold} />
       </div>
       <p className="text-sm text-ink-600 line-clamp-2">{product.description}</p>
       <p className="text-sm font-semibold text-brand-700">{Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}</p>

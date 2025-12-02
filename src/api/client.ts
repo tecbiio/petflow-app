@@ -4,6 +4,44 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 type ApiProduct = Omit<Product, "price"> & { price: string | number };
 
+type HusseFetchResult = {
+  pages: { url: string; html: string }[];
+  encounteredLoginPage: boolean;
+};
+
+type ActiveFilter = { active?: boolean };
+
+type UpsertProductPayload = {
+  name: string;
+  sku: string;
+  description?: string | null;
+  price: number;
+  isActive?: boolean;
+  axonautProductId?: number | null;
+};
+
+type UpsertLocationPayload = {
+  name: string;
+  code: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+};
+
+type StockMovementPayload = {
+  productId: number;
+  stockLocationId: number;
+  quantityDelta: number;
+  reason?: string;
+  createdAt?: string;
+};
+
+type InventoryPayload = {
+  productId: number;
+  stockLocationId: number;
+  quantity: number;
+  createdAt?: string;
+};
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_URL}${path}`;
   const headers: HeadersInit = {
@@ -29,9 +67,15 @@ function mapProduct(product: ApiProduct): Product {
   };
 }
 
+function queryFrom(filter?: Record<string, unknown>): string {
+  const entries = Object.entries(filter ?? {}).filter(([, value]) => value !== undefined && value !== null);
+  if (entries.length === 0) return "";
+  return `?${new URLSearchParams(entries.map(([key, value]) => [key, String(value)])).toString()}`;
+}
+
 export const api = {
-  listProducts: async (): Promise<Product[]> => {
-    const data = await fetchJson<ApiProduct[]>("/products");
+  listProducts: async (filter?: ActiveFilter): Promise<Product[]> => {
+    const data = await fetchJson<ApiProduct[]>(`/products${queryFrom({ active: filter?.active })}`);
     return data.map(mapProduct);
   },
 
@@ -40,7 +84,43 @@ export const api = {
     return mapProduct(data);
   },
 
-  listStockLocations: (): Promise<StockLocation[]> => fetchJson("/stock-locations"),
+  createProduct: async (payload: UpsertProductPayload): Promise<Product> => {
+    const data = await fetchJson<ApiProduct>("/products", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return mapProduct(data);
+  },
+
+  updateProduct: async (productId: number, payload: Partial<UpsertProductPayload>): Promise<Product> => {
+    const data = await fetchJson<ApiProduct>(`/products/${productId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return mapProduct(data);
+  },
+
+  listStockLocations: (filter?: ActiveFilter): Promise<StockLocation[]> =>
+    fetchJson(`/stock-locations${queryFrom({ active: filter?.active })}`),
+
+  createStockLocation: (payload: UpsertLocationPayload): Promise<StockLocation> =>
+    fetchJson("/stock-locations", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  updateStockLocation: (
+    stockLocationId: number,
+    payload: Partial<UpsertLocationPayload>,
+  ): Promise<StockLocation> =>
+    fetchJson(`/stock-locations/${stockLocationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 
   getDefaultStockLocation: (): Promise<StockLocation> => fetchJson("/stock-locations/default"),
 
@@ -58,6 +138,45 @@ export const api = {
   getMovementsByStockLocation: (stockLocationId: number): Promise<StockMovement[]> =>
     fetchJson(`/stock-movements/stock-location/${stockLocationId}`),
 
+  getMovementsByDate: (dateIso: string): Promise<StockMovement[]> =>
+    fetchJson(`/stock-movements/date/${dateIso}`),
+
+  createStockMovement: (payload: StockMovementPayload): Promise<StockMovement> =>
+    fetchJson("/stock-movements", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
   getInventoriesByProduct: (productId: number): Promise<Inventory[]> =>
     fetchJson(`/inventories/product/${productId}`),
+
+  getInventoriesByStockLocation: (stockLocationId: number): Promise<Inventory[]> =>
+    fetchJson(`/inventories/stock-location/${stockLocationId}`),
+
+  getInventoriesByDate: (dateIso: string): Promise<Inventory[]> =>
+    fetchJson(`/inventories/date/${dateIso}`),
+
+  createInventory: (payload: InventoryPayload): Promise<Inventory> =>
+    fetchJson("/inventories", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  husseLogin: (baseUrl: string, username: string, password: string): Promise<{ ok: boolean }> =>
+    fetchJson("/husse/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ baseUrl, username, password }),
+    }),
+
+  husseSession: (): Promise<{ hasCookie: boolean }> => fetchJson("/husse/session"),
+
+  husseFetch: (urls: string[]): Promise<HusseFetchResult> =>
+    fetchJson("/husse/fetch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls }),
+    }),
 };

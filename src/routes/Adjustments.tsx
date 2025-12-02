@@ -9,7 +9,6 @@ function Adjustments() {
   const { data: locations = [], isLoading: loadingLocations } = useStockLocations();
   const defaultProductId = products[0]?.id;
   const defaultLocationId = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id;
-  const writesDisabled = true;
 
   return (
     <div className="space-y-4">
@@ -27,11 +26,9 @@ function Adjustments() {
             {loadingProducts || loadingLocations ? "Chargement des données…" : "Ajoutez un produit et un emplacement pour activer le dropzone."}
           </p>
         )}
-        {writesDisabled ? (
-          <p className="mt-2 text-xs text-amber-700">
-            Les actions de création sont désactivées tant que l'API reste en lecture seule.
-          </p>
-        ) : null}
+        <p className="mt-2 text-xs text-ink-600">
+          Une fois le POST multipart exposé, on renverra vers PUT /stock-movements avec les métadonnées détectées.
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

@@ -1,28 +1,70 @@
 import { Link, useParams } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useProduct } from "../hooks/useProducts";
 import { useProductStock, useProductVariations } from "../hooks/useStock";
 import { useMovementsByProduct } from "../hooks/useMovements";
 import { useInventoriesByProduct } from "../hooks/useInventories";
 import { useStockLocations } from "../hooks/useStockLocations";
 import StockBadge from "../components/StockBadge";
+import { api } from "../api/client";
+import { useProductThresholds } from "../hooks/useProductThresholds";
+import StockChart from "../components/StockChart";
 
 const DEFAULT_THRESHOLD = 10;
 
 function ProductDetail() {
   const { productId = "" } = useParams();
   const productNumericId = Number(productId);
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState<string | null>(null);
   const { data: product } = useProduct(productNumericId);
   const { data: stock } = useProductStock(productNumericId);
   const { data: variations = [] } = useProductVariations(productNumericId);
   const { data: movements = [] } = useMovementsByProduct(productNumericId);
   const { data: inventories = [] } = useInventoriesByProduct(productNumericId);
   const { data: locations = [] } = useStockLocations();
+  const { getThreshold, setThreshold } = useProductThresholds();
+
+  const chartData = useMemo(() => {
+    if (!product) return [];
+
+    const sortedVariations = [...variations].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    const sortedInventories = [...inventories].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    const baseInventory = sortedInventories[0];
+    const baseQuantity = baseInventory?.quantity ?? 0;
+    const baseDate = baseInventory?.createdAt ?? product.createdAt;
+
+    let running = baseQuantity;
+    const points = [{ date: baseDate, quantity: running }];
+
+    for (const move of sortedVariations) {
+      running += move.quantityDelta;
+      points.push({ date: move.createdAt, quantity: running });
+    }
+
+    return points;
+  }, [inventories, product, variations]);
+
+  const patchProduct = useMutation({
+    mutationFn: (isActive: boolean) => api.updateProduct(productNumericId, { isActive }),
+    onSuccess: (updated) => {
+      setMessage(`Statut mis à jour via PATCH /products/${updated.id}`);
+      queryClient.invalidateQueries({ queryKey: ["product", productNumericId] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error: Error) => setMessage(error.message),
+  });
 
   if (!product) {
     return <p className="text-sm text-ink-600">Produit introuvable.</p>;
   }
 
-  const threshold = DEFAULT_THRESHOLD;
+  const threshold = getThreshold(product.id) ?? DEFAULT_THRESHOLD;
   const stockQuantity = stock?.stock ?? 0;
   const ratio = threshold ? Math.min(1, stockQuantity / threshold) : 1;
 
@@ -32,7 +74,16 @@ function ProductDetail() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-ink-500">{product.sku}</p>
-            <h2 className="text-2xl font-semibold text-ink-900">{product.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-semibold text-ink-900">{product.name}</h2>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  product.isActive ?? true ? "bg-emerald-50 text-emerald-700" : "bg-ink-100 text-ink-700"
+                }`}
+              >
+                {product.isActive ?? true ? "Actif" : "Archivé"}
+              </span>
+            </div>
             <p className="text-sm text-ink-600">{product.description}</p>
             <p className="mt-2 text-sm font-semibold text-brand-700">
               {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
@@ -40,6 +91,14 @@ function ProductDetail() {
           </div>
           <div className="flex items-center gap-2">
             <StockBadge quantity={stock?.stock} threshold={threshold} />
+            <button
+              type="button"
+              onClick={() => patchProduct.mutate(!(product.isActive ?? true))}
+              className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
+              title="PATCH /products/:id"
+            >
+              {product.isActive ?? true ? "Archiver" : "Réactiver"}
+            </button>
             <Link
               to="/adjustments"
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
@@ -48,8 +107,21 @@ function ProductDetail() {
             </Link>
           </div>
         </div>
+        {message ? <p className="mt-2 text-xs text-ink-600">{message}</p> : null}
         <div className="mt-4">
-          <p className="text-xs text-ink-500">Stock vs seuil</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-ink-500">Stock vs seuil</p>
+            <label className="text-xs font-semibold text-ink-800">
+              Seuil spécifique ({threshold})
+              <input
+                type="number"
+                min={0}
+                value={threshold}
+                onChange={(e) => setThreshold(product.id, Number(e.target.value))}
+                className="ml-2 w-20 rounded-lg border border-ink-100 px-2 py-1 text-xs"
+              />
+            </label>
+          </div>
           <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-ink-100">
             <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all" style={{ width: `${ratio * 100}%` }} />
           </div>
@@ -87,6 +159,9 @@ function ProductDetail() {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-ink-900">Mouvements</h3>
             <span className="pill bg-brand-50 text-brand-700">/stock-movements/product/:id</span>
+          </div>
+          <div className="mt-3">
+            <StockChart data={chartData} threshold={threshold} />
           </div>
           <div className="mt-3 space-y-2">
             {movements.length === 0 ? (

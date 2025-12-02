@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 
-export const useProducts = () =>
+type ProductFilter = {
+  active?: boolean;
+};
+
+export const useProducts = (filter?: ProductFilter) =>
   useQuery({
-    queryKey: ["products"],
-    queryFn: api.listProducts,
+    queryKey: ["products", filter?.active ?? "all"],
+    queryFn: () => api.listProducts(filter),
   });
 
 export const useProduct = (productId?: number) =>

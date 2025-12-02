@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import StatCard from "../components/StatCard";
 import StockBadge from "../components/StockBadge";
@@ -6,13 +6,12 @@ import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { api } from "../api/client";
 import { StockMovement } from "../types";
-
-const DEFAULT_THRESHOLD = 10;
+import { useProductThresholds } from "../hooks/useProductThresholds";
 
 function Dashboard() {
-  const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD);
   const { data: products = [], isLoading: loadingProducts } = useProducts();
   const { data: locations = [] } = useStockLocations();
+  const { getThreshold, defaultThreshold } = useProductThresholds();
 
   const stockQueries = useQueries({
     queries:
@@ -37,9 +36,10 @@ function Dashboard() {
       .map((p, index) => ({
         product: p,
         quantity: stockQueries[index]?.data?.stock ?? 0,
+        threshold: getThreshold(p.id),
       }))
-      .filter((item) => item.quantity < threshold);
-  }, [products, stockQueries, threshold]);
+      .filter((item) => item.quantity < item.threshold);
+  }, [getThreshold, products, stockQueries]);
 
   const recentMovements: StockMovement[] = useMemo(() => {
     const merged = movementQueries.flatMap((mq) => mq.data ?? []);
@@ -54,7 +54,7 @@ function Dashboard() {
         <StatCard
           title="Sous seuil"
           value={lowStock.length}
-          hint={`Seuil courant : ${threshold}`}
+          hint={`Seuil par produit (défaut ${defaultThreshold})`}
           tone={lowStock.length > 0 ? "warning" : "default"}
         />
         <StatCard title="Mouvements récents" value={recentMovements.length} hint="24h glissantes" tone="info" />
@@ -64,28 +64,22 @@ function Dashboard() {
         <div className="glass-panel lg:col-span-2 p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-ink-900">Produits sous seuil</h2>
-            <label className="text-xs text-ink-600">
-              Seuil par défaut
-              <input
-                type="number"
-                value={threshold}
-                onChange={(e) => setThreshold(Number(e.target.value))}
-                className="ml-2 w-20 rounded-lg border border-ink-100 px-2 py-1 text-sm"
-              />
-            </label>
+            <span className="pill bg-ink-100 text-ink-700">Seuils personnalisés</span>
           </div>
           <div className="mt-3 space-y-3">
             {lowStock.length === 0 ? (
               <p className="text-sm text-ink-600">Aucun article sous le seuil configuré.</p>
             ) : (
-              lowStock.map(({ product, quantity }) => (
+              lowStock.map(({ product, quantity, threshold }) => (
                 <div
                   key={product.id}
               className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-3 py-3 shadow-sm"
             >
               <div>
                 <p className="text-sm font-semibold text-ink-900">{product.name}</p>
-                <p className="text-xs text-ink-500">{product.sku}</p>
+                <p className="text-xs text-ink-500">
+                  {product.sku} • Seuil {threshold}
+                </p>
               </div>
               <StockBadge quantity={quantity} threshold={threshold} />
             </div>

@@ -4,6 +4,7 @@ export type Product = {
   sku: string;
   description: string | null;
   price: number;
+  isActive?: boolean;
   axonautProductId?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -14,6 +15,7 @@ export type StockLocation = {
   name: string;
   code: string;
   isDefault: boolean;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 };
