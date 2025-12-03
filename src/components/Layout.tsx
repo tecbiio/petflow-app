@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { ReactNode } from "react";
+import logo from "../assets/petflow-logo.svg";
 
 const links = [
   { to: "/", label: "Tableau de bord" },
   { to: "/products", label: "Produits" },
   { to: "/locations", label: "Emplacements" },
   { to: "/adjustments", label: "Mouvements & inventaires" },
-  { to: "/husse", label: "Sync Husse" },
   { to: "/settings", label: "Réglages" },
 ];
 
@@ -24,8 +24,8 @@ function Layout({ children }: Props) {
         <header className="relative border-b border-white/60 bg-white/80 backdrop-blur-xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-card">
-                <span className="text-lg font-bold">PF</span>
+              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-brand-100">
+                <img src={logo} alt="PetFlow" className="h-full w-full object-contain" />
               </div>
               <div>
                 <p className="text-lg font-semibold leading-tight">PetFlow</p>

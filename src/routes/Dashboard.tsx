@@ -6,12 +6,11 @@ import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { api } from "../api/client";
 import { StockMovement } from "../types";
-import { useProductThresholds } from "../hooks/useProductThresholds";
+import logo from "../assets/petflow-logo.svg";
 
 function Dashboard() {
   const { data: products = [], isLoading: loadingProducts } = useProducts();
   const { data: locations = [] } = useStockLocations();
-  const { getThreshold, defaultThreshold } = useProductThresholds();
 
   const stockQueries = useQueries({
     queries:
@@ -31,15 +30,20 @@ function Dashboard() {
       })) ?? [],
   });
 
-  const lowStock = useMemo(() => {
+  const totalStock = useMemo(
+    () => stockQueries.reduce((sum, query) => sum + (query.data?.stock ?? 0), 0),
+    [stockQueries],
+  );
+
+  const lowestStock = useMemo(() => {
     return products
       .map((p, index) => ({
         product: p,
         quantity: stockQueries[index]?.data?.stock ?? 0,
-        threshold: getThreshold(p.id),
       }))
-      .filter((item) => item.quantity < item.threshold);
-  }, [getThreshold, products, stockQueries]);
+      .sort((a, b) => a.quantity - b.quantity)
+      .slice(0, 5);
+  }, [products, stockQueries]);
 
   const recentMovements: StockMovement[] = useMemo(() => {
     const merged = movementQueries.flatMap((mq) => mq.data ?? []);
@@ -48,14 +52,29 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="glass-panel flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-brand-100">
+            <img src={logo} alt="PetFlow" className="h-full w-full object-contain" />
+          </div>
+          <div>
+            <p className="text-sm uppercase tracking-wide text-ink-500">Tableau principal</p>
+            <p className="text-lg font-semibold text-ink-900">Pilotage des flux en un coup d'oeil</p>
+          </div>
+        </div>
+        <p className="text-xs text-ink-500">
+          Synthèse produits, emplacements et derniers mouvements issus du core PetFlow.
+        </p>
+      </div>
+
       <div className="grid gap-3 md:grid-cols-4">
         <StatCard title="Produits" value={loadingProducts ? "…" : products.length} hint="Catalogués" />
         <StatCard title="Emplacements" value={locations.length} hint="Actifs" tone="info" />
         <StatCard
-          title="Sous seuil"
-          value={lowStock.length}
-          hint={`Seuil par produit (défaut ${defaultThreshold})`}
-          tone={lowStock.length > 0 ? "warning" : "default"}
+          title="Stock total"
+          value={totalStock}
+          hint="Unités suivies"
+          tone={totalStock === 0 ? "warning" : "default"}
         />
         <StatCard title="Mouvements récents" value={recentMovements.length} hint="24h glissantes" tone="info" />
       </div>
@@ -63,30 +82,28 @@ function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="glass-panel lg:col-span-2 p-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-ink-900">Produits sous seuil</h2>
-            <span className="pill bg-ink-100 text-ink-700">Seuils personnalisés</span>
+            <h2 className="text-lg font-semibold text-ink-900">Stocks les plus bas</h2>
+            <span className="pill bg-ink-100 text-ink-700">Classement par quantité</span>
           </div>
           <div className="mt-3 space-y-3">
-            {lowStock.length === 0 ? (
-              <p className="text-sm text-ink-600">Aucun article sous le seuil configuré.</p>
+            {lowestStock.length === 0 ? (
+              <p className="text-sm text-ink-600">Aucun article suivi pour l'instant.</p>
             ) : (
-              lowStock.map(({ product, quantity, threshold }) => (
+              lowestStock.map(({ product, quantity }) => (
                 <div
                   key={product.id}
-              className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-3 py-3 shadow-sm"
-            >
-              <div>
-                <p className="text-sm font-semibold text-ink-900">{product.name}</p>
-                <p className="text-xs text-ink-500">
-                  {product.sku} • Seuil {threshold}
-                </p>
-              </div>
-              <StockBadge quantity={quantity} threshold={threshold} />
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+                  className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-3 py-3 shadow-sm"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-ink-900">{product.name}</p>
+                    <p className="text-xs text-ink-500">{product.sku}</p>
+                  </div>
+                  <StockBadge quantity={quantity} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         <div className="glass-panel p-4">
           <div className="flex items-center justify-between">

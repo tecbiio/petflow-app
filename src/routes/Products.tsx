@@ -6,11 +6,9 @@ import { useProducts } from "../hooks/useProducts";
 import { api } from "../api/client";
 import StockBadge from "../components/StockBadge";
 import { useStockLocations } from "../hooks/useStockLocations";
-import { useProductThresholds } from "../hooks/useProductThresholds";
 
 function Products() {
   const queryClient = useQueryClient();
-  const { getThreshold, setThreshold, defaultThreshold } = useProductThresholds();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeOnly, setActiveOnly] = useState(true);
@@ -46,7 +44,6 @@ function Products() {
   const selectedStock = selected
     ? stockQueries[products.findIndex((p) => p.id === selected.id)]?.data?.stock ?? 0
     : undefined;
-  const selectedThreshold = selected ? getThreshold(selected.id) : defaultThreshold;
 
   const createProduct = useMutation({
     mutationFn: api.createProduct,
@@ -153,23 +150,13 @@ function Products() {
                   {selected.isActive ?? true ? "Actif" : "Archivé"}
                 </span>
               </div>
-              <StockBadge quantity={selectedStock} threshold={selectedThreshold} />
+              <StockBadge quantity={selectedStock} />
               <div className="text-xs text-ink-600">
                 <p>SKU: {selected.sku}</p>
                 <p>Prix: {Number.isFinite(selected.price) ? `${selected.price.toFixed(2)} €` : "—"}</p>
                 <p>Créé le: {new Date(selected.createdAt).toLocaleDateString("fr-FR")}</p>
                 <p>Emplacement par défaut: {locations.find((l) => l.isDefault)?.name ?? "—"}</p>
               </div>
-              <label className="text-xs font-semibold text-ink-800">
-                Seuil spécifique ({selectedThreshold})
-                <input
-                  type="number"
-                  value={selectedThreshold}
-                  onChange={(e) => setThreshold(selected.id, Number(e.target.value))}
-                  className="mt-1 w-24 rounded-lg border border-ink-100 px-2 py-1 text-xs"
-                  min={0}
-                />
-              </label>
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   to={`/products/${selected.id}`}

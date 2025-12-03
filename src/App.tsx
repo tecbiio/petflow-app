@@ -5,7 +5,6 @@ import Products from "./routes/Products";
 import ProductDetail from "./routes/ProductDetail";
 import Locations from "./routes/Locations";
 import Adjustments from "./routes/Adjustments";
-import HusseSync from "./routes/HusseSync";
 import Settings from "./routes/Settings";
 
 function App() {
@@ -17,7 +16,6 @@ function App() {
         <Route path="/products/:productId" element={<ProductDetail />} />
         <Route path="/locations" element={<Locations />} />
         <Route path="/adjustments" element={<Adjustments />} />
-        <Route path="/husse" element={<HusseSync />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

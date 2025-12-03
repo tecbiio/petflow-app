@@ -8,10 +8,7 @@ import { useInventoriesByProduct } from "../hooks/useInventories";
 import { useStockLocations } from "../hooks/useStockLocations";
 import StockBadge from "../components/StockBadge";
 import { api } from "../api/client";
-import { useProductThresholds } from "../hooks/useProductThresholds";
 import StockChart from "../components/StockChart";
-
-const DEFAULT_THRESHOLD = 10;
 
 function ProductDetail() {
   const { productId = "" } = useParams();
@@ -24,7 +21,6 @@ function ProductDetail() {
   const { data: movements = [] } = useMovementsByProduct(productNumericId);
   const { data: inventories = [] } = useInventoriesByProduct(productNumericId);
   const { data: locations = [] } = useStockLocations();
-  const { getThreshold, setThreshold } = useProductThresholds();
 
   const chartData = useMemo(() => {
     if (!product) return [];
@@ -64,9 +60,7 @@ function ProductDetail() {
     return <p className="text-sm text-ink-600">Produit introuvable.</p>;
   }
 
-  const threshold = getThreshold(product.id) ?? DEFAULT_THRESHOLD;
   const stockQuantity = stock?.stock ?? 0;
-  const ratio = threshold ? Math.min(1, stockQuantity / threshold) : 1;
 
   return (
     <div className="space-y-6">
@@ -85,17 +79,17 @@ function ProductDetail() {
               </span>
             </div>
             <p className="text-sm text-ink-600">{product.description}</p>
-            <p className="mt-2 text-sm font-semibold text-brand-700">
-              {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <StockBadge quantity={stock?.stock} threshold={threshold} />
-            <button
-              type="button"
-              onClick={() => patchProduct.mutate(!(product.isActive ?? true))}
-              className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
-              title="PATCH /products/:id"
+          <p className="mt-2 text-sm font-semibold text-brand-700">
+            {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <StockBadge quantity={stock?.stock} />
+          <button
+            type="button"
+            onClick={() => patchProduct.mutate(!(product.isActive ?? true))}
+            className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
+            title="PATCH /products/:id"
             >
               {product.isActive ?? true ? "Archiver" : "Réactiver"}
             </button>
@@ -108,28 +102,15 @@ function ProductDetail() {
           </div>
         </div>
         {message ? <p className="mt-2 text-xs text-ink-600">{message}</p> : null}
-        <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-ink-500">Stock vs seuil</p>
-            <label className="text-xs font-semibold text-ink-800">
-              Seuil spécifique ({threshold})
-              <input
-                type="number"
-                min={0}
-                value={threshold}
-                onChange={(e) => setThreshold(product.id, Number(e.target.value))}
-                className="ml-2 w-20 rounded-lg border border-ink-100 px-2 py-1 text-xs"
-              />
-            </label>
-          </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-ink-100">
-            <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all" style={{ width: `${ratio * 100}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-ink-600">
-            {stockQuantity} unités disponibles – seuil {threshold}
-          </p>
-        </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
+            <p className="text-xs text-ink-500">Stock actuel</p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-lg font-semibold text-ink-900">{stockQuantity} unités</p>
+              <StockBadge quantity={stockQuantity} />
+            </div>
+            <p className="text-xs text-ink-500">Synchronisé via mouvements et inventaires.</p>
+          </div>
           <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
             <p className="text-xs text-ink-500">Dernier inventaire</p>
             <p className="text-lg font-semibold text-ink-900">
@@ -146,11 +127,6 @@ function ProductDetail() {
             </p>
             <p className="text-xs text-ink-500">{locations.length} emplacements</p>
           </div>
-          <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
-            <p className="text-xs text-ink-500">Variations suivies</p>
-            <p className="text-lg font-semibold text-ink-900">{variations.length}</p>
-            <p className="text-xs text-ink-500">/stock/:id/variations</p>
-          </div>
         </div>
       </div>
 
@@ -161,7 +137,7 @@ function ProductDetail() {
             <span className="pill bg-brand-50 text-brand-700">/stock-movements/product/:id</span>
           </div>
           <div className="mt-3">
-            <StockChart data={chartData} threshold={threshold} />
+            <StockChart data={chartData} />
           </div>
           <div className="mt-3 space-y-2">
             {movements.length === 0 ? (
