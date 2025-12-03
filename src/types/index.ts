@@ -43,3 +43,11 @@ export type StockSnapshot = {
 };
 
 export type StockVariation = StockMovement;
+
+export type DocumentType = "FACTURE" | "AVOIR" | "BON_LIVRAISON" | "AUTRE";
+
+export type ParsedDocumentLine = {
+  reference: string;
+  description?: string;
+  quantity: number;
+};

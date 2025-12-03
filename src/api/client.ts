@@ -1,4 +1,12 @@
-import { Inventory, Product, StockLocation, StockMovement, StockSnapshot } from "../types";
+import {
+  DocumentType,
+  Inventory,
+  ParsedDocumentLine,
+  Product,
+  StockLocation,
+  StockMovement,
+  StockSnapshot,
+} from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -8,6 +16,9 @@ type HusseFetchResult = {
   pages: { url: string; html: string }[];
   encounteredLoginPage: boolean;
 };
+
+type AxonautLookupResult = Record<string, { id?: string | number; raw?: unknown }>;
+type DocumentParseResult = { lines: ParsedDocumentLine[] };
 
 type ActiveFilter = { active?: boolean };
 
@@ -178,5 +189,58 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ urls }),
+    }),
+
+  axonautSetConfig: (payload: {
+    baseUrl: string;
+    apiKey: string;
+    updateStockUrlTemplate: string;
+    lookupProductsUrlTemplate?: string;
+  }): Promise<{ ok: boolean }> =>
+    fetchJson("/axonaut/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  axonautUpdateStock: (payload: {
+    productId: string;
+    quantityDelta?: number;
+    quantity?: number;
+    reason?: string;
+  }): Promise<{ ok: boolean }> =>
+    fetchJson("/axonaut/update-stock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  axonautLookup: (references: string[]): Promise<AxonautLookupResult> =>
+    fetchJson("/axonaut/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ references }),
+    }),
+
+  parseDocument: (file: File, docType: DocumentType): Promise<DocumentParseResult> => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("docType", docType);
+    return fetchJson("/documents/parse", {
+      method: "POST",
+      body: form,
+    });
+  },
+
+  ingestDocument: (payload: {
+    docType: DocumentType;
+    stockLocationId?: number;
+    sourceDocumentId?: string;
+    lines: ParsedDocumentLine[];
+  }): Promise<{ created: number; skipped: { reference: string; reason: string }[] }> =>
+    fetchJson("/documents/ingest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     }),
 };

@@ -7,6 +7,7 @@ const links = [
   { to: "/locations", label: "Emplacements" },
   { to: "/adjustments", label: "Mouvements & inventaires" },
   { to: "/husse", label: "Sync Husse" },
+  { to: "/settings", label: "Réglages" },
 ];
 
 type Props = {

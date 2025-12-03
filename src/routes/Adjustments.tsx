@@ -15,7 +15,7 @@ function Adjustments() {
       <div className="glass-panel p-4">
         <h2 className="text-lg font-semibold text-ink-900">Import d'un document</h2>
         <p className="text-xs text-ink-500">
-          Déposez une facture/commande/avoir : un mouvement sera créé via /stock-movements (payload multipart) dès que l'endpoint sera ouvert.
+          Déposez une facture/avoir/BL : le core parse en Node, affiche un aperçu, puis crée les mouvements via /documents/ingest.
         </p>
         {defaultProductId && defaultLocationId ? (
           <div className="mt-3">
@@ -27,7 +27,7 @@ function Adjustments() {
           </p>
         )}
         <p className="mt-2 text-xs text-ink-600">
-          Une fois le POST multipart exposé, on renverra vers PUT /stock-movements avec les métadonnées détectées.
+          Place tes templates regex dans `petflow-core/pdf-templates/` si besoin d'ajuster la détection.
         </p>
       </div>
 

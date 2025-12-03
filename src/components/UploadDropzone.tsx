@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import ConfirmModal from "./ConfirmModal";
+import { api } from "../api/client";
+import { DocumentType, ParsedDocumentLine } from "../types";
+import { useEffect } from "react";
 
 type Props = {
   productId: number;
@@ -7,15 +12,60 @@ type Props = {
 
 function UploadDropzone({ productId, stockLocationId }: Props) {
   const [file, setFile] = useState<File | null>(null);
+  const [docType, setDocType] = useState<DocumentType>("FACTURE");
   const [message, setMessage] = useState<string | null>(null);
-  const writesDisabled = true;
+  const [preview, setPreview] = useState<ParsedDocumentLine[] | null>(null);
+  const [sourceName, setSourceName] = useState<string | undefined>(undefined);
+
+  const parseMutation = useMutation({
+    mutationFn: () => {
+      if (!file) throw new Error("Aucun fichier sélectionné");
+      return api.parseDocument(file, docType);
+    },
+    onSuccess: (data) => {
+      if (!data.lines || data.lines.length === 0) {
+        setPreview(null);
+        setMessage("Aucune ligne produit détectée dans le PDF.");
+        return;
+      }
+      setPreview(data.lines);
+      setMessage(`Fichier parsé (${data.lines.length} lignes). Vérifiez avant validation.`);
+    },
+    onError: (error: Error) => setMessage(error.message),
+  });
+
+  const ingestMutation = useMutation({
+    mutationFn: () =>
+      api.ingestDocument({
+        docType,
+        stockLocationId,
+        sourceDocumentId: sourceName,
+        lines: preview ?? [],
+      }),
+    onSuccess: (res) => {
+      setMessage(`Mouvements créés: ${res.created}. Ignorés: ${res.skipped.length}.`);
+      setPreview(null);
+      setFile(null);
+    },
+    onError: (error: Error) => setMessage(error.message),
+  });
+
+  useEffect(() => {
+    if (preview) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => document.body.classList.remove("modal-open");
+  }, [preview]);
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const dropped = event.dataTransfer.files?.[0];
     if (dropped) {
       setFile(dropped);
-      setMessage("Import désactivé tant que le POST /stock-movements n'est pas disponible.");
+      setSourceName(dropped.name);
+      setMessage(null);
     }
   };
 
@@ -23,33 +73,103 @@ function UploadDropzone({ productId, stockLocationId }: Props) {
     const picked = e.target.files?.[0];
     if (picked) {
       setFile(picked);
-      setMessage("Import désactivé tant que le POST /stock-movements n'est pas disponible.");
+      setSourceName(picked.name);
+      setMessage(null);
     }
   };
 
+  const handleParse = (e: FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+    setPreview(null);
+    parseMutation.mutate();
+  };
+
   return (
-    <div
-      onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}
-      className="glass-panel border-dashed border-2 border-brand-200 px-4 py-6 text-center"
-    >
-      <p className="text-sm font-semibold text-ink-900">Glissez votre commande/facture/avoir</p>
-      <p className="text-xs text-ink-500">
-        Le document sera associé au produit et converti en mouvement dès que l'endpoint de création sera prêt.
-      </p>
-      <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
-        Parcourir…
-        <input
-          type="file"
-          className="hidden"
-          onChange={handleSelect}
-          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-          disabled={writesDisabled}
-        />
-      </label>
-      {file ? <p className="mt-3 text-sm text-ink-700">Sélectionné : {file.name}</p> : null}
-      {message ? <p className="text-xs text-ink-600">{message}</p> : null}
-    </div>
+    <>
+      <form
+        onSubmit={handleParse}
+        className="glass-panel border-dashed border-2 border-brand-200 px-4 py-6 text-center space-y-3"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => handleDrop(e as unknown as React.DragEvent<HTMLDivElement>)}
+      >
+        <p className="text-sm font-semibold text-ink-900">Importer un document (PDF)</p>
+        <p className="text-xs text-ink-500">
+          Choisissez un PDF (facture/avoir/BL), on parse côté core en Node (sans Python) puis on prépare les mouvements avant confirmation.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-ink-800">
+          <label className="inline-flex items-center gap-2">
+            Type
+            <select
+              value={docType}
+              onChange={(e) => setDocType(e.target.value as DocumentType)}
+              className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
+            >
+              <option value="FACTURE">Facture (sortie)</option>
+              <option value="AVOIR">Avoir (entrée)</option>
+              <option value="BON_LIVRAISON">Bon de livraison (entrée)</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </label>
+          <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700">
+            Emplacement #{stockLocationId}
+          </span>
+        </div>
+        <label className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
+          Parcourir…
+          <input
+            type="file"
+            className="hidden"
+            onChange={handleSelect}
+            accept=".pdf"
+          />
+        </label>
+        {file ? <p className="text-sm text-ink-700">Sélectionné : {file.name}</p> : null}
+        {message ? <p className="text-xs text-ink-600">{message}</p> : null}
+        <div className="flex justify-center">
+          <button
+            type="submit"
+            className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            disabled={!file || parseMutation.isPending}
+          >
+            {parseMutation.isPending ? "Analyse…" : "Analyser"}
+          </button>
+        </div>
+      </form>
+      {preview ? (
+        <ConfirmModal
+          title="Vérification des lignes détectées"
+          description="Confirmez pour créer les mouvements de stock."
+          onClose={() => setPreview(null)}
+          onConfirm={() => ingestMutation.mutate()}
+          confirmLabel={ingestMutation.isPending ? "Création…" : "Valider les mouvements"}
+        >
+          <div className="overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-ink-600">
+                  <th className="px-2 py-1">Référence</th>
+                  <th className="px-2 py-1">Description</th>
+                  <th className="px-2 py-1">Quantité</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((line, idx) => (
+                  <tr key={idx} className="border-t border-ink-100">
+                    <td className="px-2 py-1">{line.reference}</td>
+                    <td className="px-2 py-1 text-ink-600">{line.description ?? "—"}</td>
+                    <td className="px-2 py-1 font-semibold">{line.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {ingestMutation.isError ? (
+            <p className="mt-2 text-xs text-amber-700">{(ingestMutation.error as Error).message}</p>
+          ) : null}
+        </ConfirmModal>
+      ) : null}
+    </>
   );
 }
 

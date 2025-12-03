@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 :root {
+  --brand-color: #4f46e5;
   color-scheme: light;
   background: radial-gradient(circle at 20% 20%, rgba(31, 123, 221, 0.12), transparent 25%),
     radial-gradient(circle at 80% 0%, rgba(12, 68, 135, 0.18), transparent 28%),
@@ -24,4 +25,8 @@ body {
 
 .pill {
   @apply px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+.modal-open {
+  overflow: hidden;
 }
