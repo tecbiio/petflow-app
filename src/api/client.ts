@@ -28,7 +28,6 @@ type UpsertProductPayload = {
   description?: string | null;
   price: number;
   isActive?: boolean;
-  axonautProductId?: number | null;
 };
 
 type UpsertLocationPayload = {
@@ -166,6 +165,9 @@ export const api = {
       body: JSON.stringify(payloads),
     }),
 
+  listStockMovements: (filter?: { productId?: number }): Promise<StockMovement[]> =>
+    fetchJson(`/stock-movements${queryFrom({ productId: filter?.productId })}`),
+
   getInventoriesByProduct: (productId: number): Promise<Inventory[]> =>
     fetchJson(`/inventories/product/${productId}`),
 
@@ -174,6 +176,9 @@ export const api = {
 
   getInventoriesByDate: (dateIso: string): Promise<Inventory[]> =>
     fetchJson(`/inventories/date/${dateIso}`),
+
+  listInventories: (filter?: { productId?: number }): Promise<Inventory[]> =>
+    fetchJson(`/inventories${queryFrom({ productId: filter?.productId })}`),
 
   createInventory: (payload: InventoryPayload): Promise<Inventory> =>
     fetchJson("/inventories", {
@@ -203,6 +208,8 @@ export const api = {
     baseUrl?: string;
     updateStockUrlTemplate?: string;
     lookupProductsUrlTemplate?: string;
+    husseUsername?: string;
+    hussePassword?: string;
   }): Promise<{ ok: boolean }> =>
     fetchJson("/axonaut/config", {
       method: "POST",
@@ -227,6 +234,8 @@ export const api = {
     baseUrl?: string;
     updateStockUrlTemplate?: string;
     lookupProductsUrlTemplate?: string;
+    husseUsername?: string;
+    hussePassword?: string;
   } | null> => fetchJson("/axonaut/config"),
 
   axonautLookup: (references: string[]): Promise<AxonautLookupResult> =>

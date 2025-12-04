@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { Product, StockLocation } from "../types";
@@ -17,6 +18,10 @@ function InventoryEditor({ products, locations }: Props) {
   const [mode, setMode] = useState<"partial" | "full">("partial");
   const [inventoryDate, setInventoryDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [message, setMessage] = useState<string | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
 
   const createInventory = useMutation({
     mutationFn: api.createInventory,
@@ -31,18 +36,30 @@ function InventoryEditor({ products, locations }: Props) {
   });
 
   useEffect(() => {
-    if (products[0]?.id) {
-      setProductId(products[0].id);
-    }
+    const defaultProd = products[0]?.id;
+    if (defaultProd) setProductId(defaultProd);
   }, [products]);
 
   useEffect(() => {
-    if (locations[0]?.id) {
-      setLocationId(locations[0].id);
-    }
+    const def = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id;
+    if (def) setLocationId(def);
   }, [locations]);
 
   const parsedDate = useMemo(() => new Date(inventoryDate), [inventoryDate]);
+  const productOptions = useMemo(
+    () =>
+      products
+        .filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku.toLowerCase().includes(productSearch.toLowerCase()))
+        .map((p) => ({ id: p.id, label: p.name, hint: p.sku })),
+    [productSearch, products],
+  );
+  const locationOptions = useMemo(
+    () =>
+      locations
+        .filter((l) => l.name.toLowerCase().includes(locationSearch.toLowerCase()) || l.code.toLowerCase().includes(locationSearch.toLowerCase()))
+        .map((l) => ({ id: l.id, label: l.name, hint: l.code, isDefault: l.isDefault })),
+    [locationSearch, locations],
+  );
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -84,36 +101,29 @@ function InventoryEditor({ products, locations }: Props) {
           </button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-ink-600">Appelle PUT /inventories (payload: productId, stockLocationId, quantity).</p>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
-        <label className="text-sm text-ink-700">
+        <div className="text-sm text-ink-700">
           Produit
-          <select
-            value={productId}
-            onChange={(e) => setProductId(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+          <button
+            type="button"
+            onClick={() => setShowProductModal(true)}
+            className="mt-1 flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left font-semibold text-ink-900"
           >
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm text-ink-700">
+            {products.find((p) => p.id === productId)?.name ?? "Choisir un produit"}
+            <span className="text-xs text-ink-500">Rechercher…</span>
+          </button>
+        </div>
+        <div className="text-sm text-ink-700">
           Emplacement
-          <select
-            value={locationId}
-            onChange={(e) => setLocationId(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+          <button
+            type="button"
+            onClick={() => setShowLocationModal(true)}
+            className="mt-1 flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left font-semibold text-ink-900"
           >
-            {locations.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            {locations.find((l) => l.id === locationId)?.name ?? "Choisir un emplacement"}
+            <span className="text-xs text-ink-500">Rechercher…</span>
+          </button>
+        </div>
         <label className="text-sm text-ink-700">
           Quantité constatée
           <input
@@ -158,8 +168,102 @@ function InventoryEditor({ products, locations }: Props) {
           {createInventory.isPending ? "Envoi…" : "Enregistrer l'inventaire"}
         </button>
       </div>
+      {showProductModal ? (
+        <ModalList
+          title="Choisir un produit"
+          search={productSearch}
+          onSearch={setProductSearch}
+          options={productOptions}
+          onSelect={(id) => {
+            setProductId(id);
+            setShowProductModal(false);
+          }}
+          onClose={() => setShowProductModal(false)}
+        />
+      ) : null}
+      {showLocationModal ? (
+        <ModalList
+          title="Choisir un emplacement"
+          search={locationSearch}
+          onSearch={setLocationSearch}
+          options={locationOptions}
+          onSelect={(id) => {
+            setLocationId(id);
+            setShowLocationModal(false);
+          }}
+          onClose={() => setShowLocationModal(false)}
+        />
+      ) : null}
     </form>
   );
 }
 
 export default InventoryEditor;
+
+type Option = { id: number; label: string; hint?: string; isDefault?: boolean };
+
+function ModalList({
+  title,
+  search,
+  onSearch,
+  options,
+  onSelect,
+  onClose,
+}: {
+  title: string;
+  search: string;
+  onSearch: (v: string) => void;
+  options: Option[];
+  onSelect: (id: number) => void;
+  onClose: () => void;
+}) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink-900/40 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-ink-900">{title}</h4>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700"
+          >
+            Fermer
+          </button>
+        </div>
+        <input
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Recherche"
+          className="mt-3 w-full rounded-lg border border-ink-100 px-3 py-2 text-sm"
+        />
+        <div className="mt-3 max-h-80 space-y-2 overflow-auto">
+          {options.length === 0 ? (
+            <p className="text-xs text-ink-500">Aucun résultat.</p>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSelect(opt.id)}
+                className="flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left text-sm font-semibold text-ink-900 hover:bg-ink-50"
+              >
+                <span>
+                  {opt.label}
+                  {opt.hint ? <span className="ml-2 text-xs font-normal text-ink-500">{opt.hint}</span> : null}
+                </span>
+                {opt.isDefault ? <span className="rounded-full bg-brand-50 px-2 py-1 text-[11px] font-semibold text-brand-700">Défaut</span> : null}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}

@@ -7,6 +7,7 @@ import { useMovementsByProduct } from "../hooks/useMovements";
 import { useInventoriesByProduct } from "../hooks/useInventories";
 import { useStockLocations } from "../hooks/useStockLocations";
 import StockBadge from "../components/StockBadge";
+import InventoryStatusBadge from "../components/InventoryStatusBadge";
 import { api } from "../api/client";
 import StockChart from "../components/StockChart";
 
@@ -61,6 +62,7 @@ function ProductDetail() {
   }
 
   const stockQuantity = stock?.stock ?? 0;
+  const hasInventory = inventories.length > 0;
 
   return (
     <div className="space-y-6">
@@ -85,16 +87,19 @@ function ProductDetail() {
         </div>
         <div className="flex items-center gap-2">
           <StockBadge quantity={stock?.stock} />
+          {!hasInventory ? (
+            <InventoryStatusBadge />
+          ) : null}
           <button
             type="button"
             onClick={() => patchProduct.mutate(!(product.isActive ?? true))}
             className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
-            title="PATCH /products/:id"
+            title={product.isActive ?? true ? "Archiver le produit" : "Réactiver le produit"}
             >
               {product.isActive ?? true ? "Archiver" : "Réactiver"}
             </button>
             <Link
-              to="/adjustments"
+              to="/documents"
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
             >
               Ajuster / inventaire
@@ -134,7 +139,6 @@ function ProductDetail() {
         <div className="glass-panel p-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-ink-900">Mouvements</h3>
-            <span className="pill bg-brand-50 text-brand-700">/stock-movements/product/:id</span>
           </div>
           <div className="mt-3">
             <StockChart data={chartData} />
@@ -162,7 +166,6 @@ function ProductDetail() {
         <div className="glass-panel p-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-ink-900">Variations</h3>
-            <span className="pill bg-ink-100 text-ink-700">/stock/:id/variations</span>
           </div>
           <div className="mt-3 space-y-2">
             {variations.length === 0 ? (
@@ -188,7 +191,6 @@ function ProductDetail() {
       <div className="glass-panel p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-ink-900">Inventaires</h3>
-          <span className="pill bg-brand-50 text-brand-700">/inventories/product/:id</span>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {inventories.length === 0 ? (

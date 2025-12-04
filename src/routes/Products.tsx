@@ -1,25 +1,24 @@
 import { FormEvent, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
 import { api } from "../api/client";
-import StockBadge from "../components/StockBadge";
-import { useStockLocations } from "../hooks/useStockLocations";
+import { Inventory } from "../types";
 
 function Products() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeOnly, setActiveOnly] = useState(true);
   const [newName, setNewName] = useState("");
   const [newSku, setNewSku] = useState("");
   const [newPrice, setNewPrice] = useState<string>("");
   const [newDescription, setNewDescription] = useState("");
-  const [newIsActive, setNewIsActive] = useState(true);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const navigate = useNavigate();
   const { data: products = [], isLoading } = useProducts({ active: activeOnly ? true : undefined });
-  const { data: locations = [] } = useStockLocations();
 
   const stockQueries = useQueries({
     queries:
@@ -29,6 +28,26 @@ function Products() {
         enabled: products.length > 0,
       })) ?? [],
   });
+
+  const inventoryQueries = useQueries({
+    queries:
+      products?.map((product) => ({
+        queryKey: ["inventories", product.id],
+        queryFn: () => api.getInventoriesByProduct(product.id),
+        enabled: products.length > 0,
+      })) ?? [],
+  });
+
+  const inventoriesByProduct = useMemo(() => {
+    const map = new Map<number, Inventory[]>();
+    products.forEach((product, index) => {
+      const data = inventoryQueries[index]?.data;
+      if (data) {
+        map.set(product.id, data as Inventory[]);
+      }
+    });
+    return map;
+  }, [inventoryQueries, products]);
 
   const filtered = useMemo(
     () =>
@@ -40,11 +59,6 @@ function Products() {
     [products, search],
   );
 
-  const selected = useMemo(() => products.find((p) => p.id === selectedId) ?? filtered[0], [filtered, products, selectedId]);
-  const selectedStock = selected
-    ? stockQueries[products.findIndex((p) => p.id === selected.id)]?.data?.stock ?? 0
-    : undefined;
-
   const createProduct = useMutation({
     mutationFn: api.createProduct,
     onSuccess: (created) => {
@@ -53,9 +67,9 @@ function Products() {
       setNewSku("");
       setNewPrice("");
       setNewDescription("");
-      setNewIsActive(true);
-      setSelectedId(created.id);
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      setShowCreateModal(false);
+      navigate(`/products/${created.id}`);
     },
     onError: (error: Error) => {
       setFormMessage(error.message);
@@ -84,169 +98,144 @@ function Products() {
       sku: newSku,
       price,
       description: newDescription || null,
-      isActive: newIsActive,
     });
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-      <div>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-ink-900">Produits</p>
-            <p className="text-xs text-ink-500">Liste issue de /products {activeOnly ? "(actifs)" : "(tous)"}</p>
-          </div>
-          <div className="flex w-full max-w-xl items-center gap-2">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par nom ou SKU"
-              className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm"
+    <div className="space-y-4">
+      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-lg font-semibold text-ink-900">Catalogue produits</p>
+          <p className="text-xs text-ink-500">Consulte, filtre ou ajoute de nouveaux produits.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setFormMessage(null);
+            setShowCreateModal(true);
+          }}
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+        >
+          Nouveau produit
+        </button>
+      </div>
+
+      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nom ou SKU"
+            className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm md:w-72"
+          />
+          <button
+            type="button"
+          onClick={() => setActiveOnly((prev) => !prev)}
+          className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+            activeOnly ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700"
+          }`}
+        >
+          {activeOnly ? "Actifs" : "Tous"}
+        </button>
+        </div>
+        <span className="text-sm font-semibold text-ink-700">{filtered.length} résultats</span>
+      </div>
+      {isLoading ? <p className="text-sm text-ink-500">Chargement…</p> : null}
+      <div className="grid gap-3 md:grid-cols-2">
+        {filtered.map((product) => {
+          const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.stock ?? 0;
+          const hasInventory = (inventoriesByProduct.get(product.id)?.length ?? 0) > 0;
+          return (
+            <ProductCard
+              key={product.id}
+              product={product}
+              stock={stock}
+              inventoryMissing={!hasInventory}
             />
-            <button
-              type="button"
-              onClick={() => setActiveOnly((prev) => !prev)}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                activeOnly ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"
-              }`}
-              title="Ajoute ?active=true sur /products"
+          );
+        })}
+      </div>
+
+      {showCreateModal
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink-900/40 px-4 backdrop-blur-sm"
+              onClick={() => setShowCreateModal(false)}
             >
-              {activeOnly ? "Actifs" : "Tous"}
-            </button>
-          </div>
-        </div>
-        {isLoading ? <p className="text-sm text-ink-500">Chargement…</p> : null}
-        <div className="grid gap-3 md:grid-cols-2">
-          {filtered.map((product) => {
-            const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.stock ?? 0;
-            return (
-              <ProductCard
-                key={product.id}
-                product={product}
-                stock={stock}
-                onPreview={() => setSelectedId(product.id)}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="glass-panel sticky top-24 h-fit p-4">
-          <p className="text-sm font-semibold text-ink-900">Aperçu produit</p>
-          {selected ? (
-            <div className="mt-3 space-y-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-lg font-semibold text-ink-900">{selected.name}</p>
-                  <p className="text-sm text-ink-500">{selected.description}</p>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    selected.isActive ?? true ? "bg-emerald-50 text-emerald-700" : "bg-ink-100 text-ink-700"
-                  }`}
-                >
-                  {selected.isActive ?? true ? "Actif" : "Archivé"}
-                </span>
-              </div>
-              <StockBadge quantity={selectedStock} />
-              <div className="text-xs text-ink-600">
-                <p>SKU: {selected.sku}</p>
-                <p>Prix: {Number.isFinite(selected.price) ? `${selected.price.toFixed(2)} €` : "—"}</p>
-                <p>Créé le: {new Date(selected.createdAt).toLocaleDateString("fr-FR")}</p>
-                <p>Emplacement par défaut: {locations.find((l) => l.isDefault)?.name ?? "—"}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  to={`/products/${selected.id}`}
-                  className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                >
-                  Voir la fiche complète
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => toggleActive.mutate({ id: selected.id, isActive: !(selected.isActive ?? true) })}
-                  className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
-                  title="PATCH /products/:id avec isActive"
-                >
-                  {selected.isActive ?? true ? "Archiver" : "Réactiver"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-ink-600">Sélectionnez un produit pour prévisualiser.</p>
-          )}
-        </div>
-
-        <div className="glass-panel p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-ink-900">Créer un produit</p>
-            <span className="pill bg-brand-50 text-brand-700">PUT /products</span>
-          </div>
-          <form className="mt-3 space-y-3" onSubmit={handleCreate}>
-            <label className="block text-sm text-ink-700">
-              Nom
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                placeholder="Friandises saumon"
-              />
-            </label>
-            <div className="grid gap-3 md:grid-cols-3">
-              <label className="text-sm text-ink-700">
-                SKU
-                <input
-                  value={newSku}
-                  onChange={(e) => setNewSku(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                  placeholder="SKU-123"
-                />
-              </label>
-              <label className="text-sm text-ink-700">
-                Prix (€)
-                <input
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                  placeholder="9.90"
-                />
-              </label>
-              <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
-                <input
-                  type="checkbox"
-                  checked={newIsActive}
-                  onChange={(e) => setNewIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-ink-300"
-                />
-                Actif (queryParam active=true sur la liste)
-              </label>
-            </div>
-            <label className="block text-sm text-ink-700">
-              Description
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                placeholder="Détail produit"
-              />
-            </label>
-            <div className="flex items-center justify-between">
-              {formMessage ? <p className="text-xs text-ink-600">{formMessage}</p> : <span className="text-xs text-ink-500">Envoi JSON: name, sku, price, description, isActive</span>}
-              <button
-                type="submit"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                disabled={createProduct.isPending}
+              <div
+                className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
               >
-                {createProduct.isPending ? "Création…" : "Créer"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-ink-900">Créer un produit</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700"
+                  >
+                    Fermer
+                  </button>
+                </div>
+                <form className="mt-4 space-y-3" onSubmit={handleCreate}>
+                  <label className="block text-sm text-ink-700">
+                    Nom
+                    <input
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                      placeholder="Friandises saumon"
+                    />
+                  </label>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <label className="text-sm text-ink-700">
+                      SKU
+                      <input
+                        value={newSku}
+                        onChange={(e) => setNewSku(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="SKU-123"
+                      />
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Prix (€)
+                      <input
+                        value={newPrice}
+                        onChange={(e) => setNewPrice(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="9.90"
+                      />
+                    </label>
+                  </div>
+                  <label className="block text-sm text-ink-700">
+                    Description
+                    <textarea
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                      placeholder="Détail produit"
+                    />
+                  </label>
+                  <div className="flex items-center justify-between">
+                    {formMessage ? <p className="text-xs text-ink-600">{formMessage}</p> : <span />}
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+                      disabled={createProduct.isPending}
+                    >
+                      {createProduct.isPending ? "Création…" : "Créer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
