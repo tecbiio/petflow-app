@@ -43,7 +43,15 @@ function UploadDropzone({ productId, stockLocationId }: Props) {
         lines: preview ?? [],
       }),
     onSuccess: (res) => {
-      setMessage(`Mouvements créés: ${res.created}. Ignorés: ${res.skipped.length}.`);
+      const details = [
+        `Mouvements créés: ${res.created}`,
+        res.productsCreated !== undefined ? `Produits créés: ${res.productsCreated}` : null,
+        res.productsLinked !== undefined ? `Liens Axonaut: ${res.productsLinked}` : null,
+        `Ignorés: ${res.skipped.length}`,
+      ]
+        .filter((part): part is string => Boolean(part))
+        .join(" • ");
+      setMessage(details);
       setPreview(null);
       setFile(null);
     },
@@ -150,6 +158,7 @@ function UploadDropzone({ productId, stockLocationId }: Props) {
                 <tr className="text-left text-ink-600">
                   <th className="px-2 py-1">Référence</th>
                   <th className="px-2 py-1">Description</th>
+                  <th className="px-2 py-1">Axonaut</th>
                   <th className="px-2 py-1">Quantité</th>
                 </tr>
               </thead>
@@ -158,6 +167,16 @@ function UploadDropzone({ productId, stockLocationId }: Props) {
                   <tr key={idx} className="border-t border-ink-100">
                     <td className="px-2 py-1">{line.reference}</td>
                     <td className="px-2 py-1 text-ink-600">{line.description ?? "—"}</td>
+                    <td className="px-2 py-1 text-ink-600">
+                      {line.axonautProductId ? (
+                        <span className="rounded-full bg-ink-100 px-2 py-1 text-xs font-semibold text-ink-700">
+                          #{line.axonautProductId}
+                          {line.axonautProductName ? ` · ${line.axonautProductName}` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-ink-400">—</span>
+                      )}
+                    </td>
                     <td className="px-2 py-1 font-semibold">{line.quantity}</td>
                   </tr>
                 ))}

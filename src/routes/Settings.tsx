@@ -9,10 +9,7 @@ function Settings() {
   const pushAxonautConfig = useMutation({
     mutationFn: () =>
       api.axonautSetConfig({
-        baseUrl: settings.axonautBaseUrl || "",
         apiKey: settings.axonautApiKey || "",
-        updateStockUrlTemplate: settings.axonautUpdateTemplate || "",
-        lookupProductsUrlTemplate: settings.axonautLookupTemplate || undefined,
       }),
   });
 
@@ -92,38 +89,9 @@ function Settings() {
       <div className="glass-panel p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-900">Axonaut</h3>
-          <span className="pill bg-ink-100 text-ink-700">PATCH stock via /axonaut/update-stock</span>
+          <span className="pill bg-ink-100 text-ink-700">Auth via header userApiKey</span>
         </div>
         <form className="mt-3 space-y-3" onSubmit={handleAxonautSync}>
-          <label className="text-sm text-ink-700">
-            Base URL Axonaut
-            <input
-              value={settings.axonautBaseUrl || ""}
-              onChange={(e) => update({ axonautBaseUrl: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-              placeholder="https://api.axonaut.com"
-            />
-          </label>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-sm text-ink-700">
-              Template mise à jour stock ({`{product_id}`})
-              <input
-                value={settings.axonautUpdateTemplate || ""}
-                onChange={(e) => update({ axonautUpdateTemplate: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                placeholder="/products/{product_id}/stock"
-              />
-            </label>
-            <label className="text-sm text-ink-700">
-              Template lookup produit ({`{reference}`})
-              <input
-                value={settings.axonautLookupTemplate || ""}
-                onChange={(e) => update({ axonautLookupTemplate: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                placeholder="/products?reference={reference}"
-              />
-            </label>
-          </div>
           <label className="text-sm text-ink-700">
             API Key Axonaut (header userApiKey)
             <input

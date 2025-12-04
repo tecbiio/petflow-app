@@ -199,9 +199,9 @@ export const api = {
     }),
 
   axonautSetConfig: (payload: {
-    baseUrl: string;
     apiKey: string;
-    updateStockUrlTemplate: string;
+    baseUrl?: string;
+    updateStockUrlTemplate?: string;
     lookupProductsUrlTemplate?: string;
   }): Promise<{ ok: boolean }> =>
     fetchJson("/axonaut/config", {
@@ -222,11 +222,31 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  axonautGetConfig: (): Promise<{
+    apiKey: string;
+    baseUrl?: string;
+    updateStockUrlTemplate?: string;
+    lookupProductsUrlTemplate?: string;
+  } | null> => fetchJson("/axonaut/config"),
+
   axonautLookup: (references: string[]): Promise<AxonautLookupResult> =>
     fetchJson("/axonaut/lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ references }),
+    }),
+
+  axonautTestRequest: (payload: { url?: string; path?: string; method?: "GET" | "POST" | "PATCH"; body?: unknown }): Promise<{
+    ok: boolean;
+    status: number;
+    statusText: string;
+    url: string;
+    body: unknown;
+  }> =>
+    fetchJson("/axonaut/test-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     }),
 
   parseDocument: (file: File, docType: DocumentType): Promise<DocumentParseResult> => {
@@ -244,7 +264,12 @@ export const api = {
     stockLocationId?: number;
     sourceDocumentId?: string;
     lines: ParsedDocumentLine[];
-  }): Promise<{ created: number; skipped: { reference: string; reason: string }[] }> =>
+  }): Promise<{
+    created: number;
+    skipped: { reference: string; reason: string }[];
+    productsCreated?: number;
+    productsLinked?: number;
+  }> =>
     fetchJson("/documents/ingest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

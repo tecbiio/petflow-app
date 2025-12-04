@@ -50,4 +50,8 @@ export type ParsedDocumentLine = {
   reference: string;
   description?: string;
   quantity: number;
+  axonautProductId?: number;
+  axonautProductCode?: string;
+  axonautProductName?: string;
+  axonautProductPrice?: number;
 };

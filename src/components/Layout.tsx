@@ -8,6 +8,7 @@ const links = [
   { to: "/locations", label: "Emplacements" },
   { to: "/adjustments", label: "Mouvements & inventaires" },
   { to: "/settings", label: "Réglages" },
+  { to: "/sandbox", label: "Bac à sable" },
 ];
 
 type Props = {
