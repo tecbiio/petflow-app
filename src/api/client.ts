@@ -159,6 +159,13 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  createStockMovements: (payloads: StockMovementPayload[]): Promise<{ created: number; movements: StockMovement[] }> =>
+    fetchJson("/stock-movements/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payloads),
+    }),
+
   getInventoriesByProduct: (productId: number): Promise<Inventory[]> =>
     fetchJson(`/inventories/product/${productId}`),
 
