@@ -6,11 +6,10 @@ import { DocumentType, ParsedDocumentLine } from "../types";
 import { useEffect } from "react";
 
 type Props = {
-  productId: number;
   stockLocationId: number;
 };
 
-function UploadDropzone({ productId, stockLocationId }: Props) {
+function UploadDropzone({ stockLocationId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentType>("FACTURE");
   const [message, setMessage] = useState<string | null>(null);
