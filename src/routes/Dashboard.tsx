@@ -223,7 +223,7 @@ function Dashboard() {
           </div>
           <div>
             <p className="text-sm uppercase tracking-wide text-ink-500">Tableau principal</p>
-            <p className="text-lg font-semibold text-ink-900">Pilotage des flux en un coup d'oeil</p>
+            <p className="text-lg font-semibold text-ink-900">Pilotage des flux en un coup de patte</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">

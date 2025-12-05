@@ -6,8 +6,15 @@ import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { Inventory, StockMovement } from "../types";
 
-type TypeFilter = "all" | "movement" | "inventory";
+type TypeFilter = "movement" | "inventory";
 type Option = { id: number; label: string; hint?: string };
+const STOCK_MOVEMENT_REASONS = ["FACTURE", "AVOIR", "PERTE", "CASSE", "DON"] as const;
+type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
+
+function formatReasonLabel(reason: StockMovementReason) {
+  const lower = reason.replace(/_/g, " ").toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
 
 function useAnchorRect() {
   const ref = useRef<HTMLInputElement | null>(null);
@@ -33,7 +40,7 @@ function useAnchorRect() {
 }
 
 function Movements() {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("movement");
   const [productFilter, setProductFilter] = useState<number | "all">("all");
   const [productSearch, setProductSearch] = useState("");
   const [productFilterFocused, setProductFilterFocused] = useState(false);
@@ -44,6 +51,7 @@ function Movements() {
   const [entryQuantity, setEntryQuantity] = useState(0);
   const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUST">("ADJUST");
   const [movementReason, setMovementReason] = useState("");
+  const [movementReasonsFilter, setMovementReasonsFilter] = useState<StockMovementReason[]>([]);
   const [movementProductSearch, setMovementProductSearch] = useState("");
   const [movementLocationSearch, setMovementLocationSearch] = useState("");
   const [formMessage, setFormMessage] = useState<string | null>(null);
@@ -54,13 +62,19 @@ function Movements() {
   const queryClient = useQueryClient();
 
   const productId = productFilter === "all" ? undefined : productFilter;
+  const reasonsFilter = movementReasonsFilter.length > 0 ? movementReasonsFilter : undefined;
+  const reasonsKey = movementReasonsFilter.length > 0 ? [...movementReasonsFilter].sort().join(",") : "all";
 
   const {
     data: movements = [],
     isLoading: loadingMovements,
   } = useQuery({
-    queryKey: ["stock-movements", productId],
-    queryFn: () => api.listStockMovements(productId ? { productId } : undefined),
+    queryKey: ["stock-movements", productId, reasonsKey],
+    queryFn: () =>
+      api.listStockMovements({
+        ...(productId ? { productId } : {}),
+        ...(reasonsFilter ? { reasons: reasonsFilter } : {}),
+      }),
     enabled: typeFilter !== "inventory",
   });
 
@@ -75,6 +89,14 @@ function Movements() {
 
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const locationMap = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
+  const reasonOptions = useMemo(
+    () =>
+      STOCK_MOVEMENT_REASONS.map((reason) => ({
+        value: reason,
+        label: formatReasonLabel(reason),
+      })),
+    [],
+  );
 
   const productOptions = useMemo(
     () =>
@@ -206,19 +228,16 @@ function Movements() {
       | { kind: "movement"; createdAt: string; data: StockMovement }
       | { kind: "inventory"; createdAt: string; data: Inventory }
     > = [];
-    if (typeFilter !== "inventory") {
+    if (typeFilter === "movement") {
       rows.push(...movements.map((m) => ({ kind: "movement" as const, createdAt: m.createdAt, data: m })));
-    }
-    if (typeFilter !== "movement") {
+    } else {
       rows.push(...inventories.map((i) => ({ kind: "inventory" as const, createdAt: i.createdAt, data: i })));
     }
-    return rows.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    return rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [typeFilter, movements, inventories]);
 
   const loading =
-    (typeFilter !== "inventory" && loadingMovements) || (typeFilter !== "movement" && loadingInventories);
+    (typeFilter === "movement" && loadingMovements) || (typeFilter === "inventory" && loadingInventories);
 
   const applyProductFilter = () => {
     if (!productSearch.trim()) {
@@ -253,56 +272,88 @@ function Movements() {
       </div>
 
       <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-ink-100 bg-white p-1 shadow-sm">
-            {([
-              { value: "all", label: "Tous" },
-              { value: "movement", label: "Mouvements" },
-              { value: "inventory", label: "Inventaires" },
-            ] as const).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setTypeFilter(option.value)}
-                className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
-                  typeFilter === option.value
-                    ? "bg-ink-900 text-white shadow-card"
-                    : "text-ink-700 hover:bg-ink-50"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMovementReasonsFilter([]);
+                setTypeFilter("movement");
+              }}
+              className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
+                movementReasonsFilter.length === 0 && typeFilter === "movement"
+                  ? "bg-ink-900 text-white shadow-card"
+                  : "text-ink-700 hover:bg-ink-50"
+              }`}
+            >
+              Tous les mouvements
+            </button>
+            {reasonOptions.map((option) => {
+              const isActive = movementReasonsFilter.includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("movement");
+                    setMovementReasonsFilter((prev) =>
+                      isActive ? prev.filter((r) => r !== option.value) : [...prev, option.value],
+                    );
+                  }}
+                  className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
+                    isActive && typeFilter === "movement"
+                      ? "bg-ink-900 text-white shadow-card"
+                      : "text-ink-700 hover:bg-ink-50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
+          <div className="hidden h-6 w-px bg-ink-200 sm:block" />
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setProductFilter("all")}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                productFilter === "all"
-                  ? "bg-ink-900 text-white shadow-card"
-                  : "border border-ink-100 bg-white text-ink-700 hover:bg-ink-50"
+              onClick={() => {
+                setTypeFilter("inventory");
+                setMovementReasonsFilter([]);
+              }}
+              className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
+                typeFilter === "inventory" ? "bg-ink-900 text-white shadow-card" : "text-ink-700 hover:bg-ink-50"
               }`}
             >
-              Tous les produits
+              Inventaires
             </button>
-            <div className="relative">
-              <input
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                onFocus={() => setProductFilterFocused(true)}
-                onBlur={() => {
-                  setProductFilterFocused(false);
-                  applyProductFilter();
-                }}
-                ref={filterAnchor.ref}
-                placeholder={productFilter === "all" ? "Filtrer par produit…" : productMap.get(productFilter)?.name}
-                className="w-56 rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm"
-              />
-            </div>
           </div>
         </div>
-        <span className="text-sm font-semibold text-ink-700">{combined.length} résultats</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setProductFilter("all")}
+            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              productFilter === "all"
+                ? "bg-ink-900 text-white shadow-card"
+                : "border border-ink-100 bg-white text-ink-700 hover:bg-ink-50"
+            }`}
+          >
+            Tous les produits
+          </button>
+          <div className="relative">
+            <input
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              onFocus={() => setProductFilterFocused(true)}
+              onBlur={() => {
+                setProductFilterFocused(false);
+                applyProductFilter();
+              }}
+              ref={filterAnchor.ref}
+              placeholder={productFilter === "all" ? "Filtrer par produit…" : productMap.get(productFilter)?.name}
+              className="w-56 rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm"
+            />
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -374,43 +425,6 @@ function Movements() {
         </div>
       )}
 
-      {productFilterFocused && productSearch.trim() && filterAnchor.rect
-        ? createPortal(
-            <div
-              className="z-[4000] max-h-56 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
-              style={{
-                position: "fixed",
-                top: (filterAnchor.rect?.bottom ?? 0) + 4,
-                left: filterAnchor.rect?.left ?? 0,
-                width: filterAnchor.rect?.width ?? "auto",
-              }}
-            >
-              {productOptions.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-ink-500">Aucun résultat</p>
-              ) : (
-                productOptions.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setProductFilter(p.id);
-                      setProductSearch(p.name);
-                      setProductFilterFocused(false);
-                    }}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-ink-50 ${
-                      productFilter === p.id ? "bg-ink-50" : ""
-                    }`}
-                  >
-                    <span className="font-semibold text-ink-900">{p.name}</span>
-                    <span className="text-xs text-ink-500">{p.sku}</span>
-                  </button>
-                ))
-              )}
-            </div>,
-            document.body,
-          )
-        : null}
 
       {showCreateModal
         ? createPortal(

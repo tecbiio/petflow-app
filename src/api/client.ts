@@ -78,9 +78,19 @@ function mapProduct(product: ApiProduct): Product {
 }
 
 function queryFrom(filter?: Record<string, unknown>): string {
-  const entries = Object.entries(filter ?? {}).filter(([, value]) => value !== undefined && value !== null);
-  if (entries.length === 0) return "";
-  return `?${new URLSearchParams(entries.map(([key, value]) => [key, String(value)])).toString()}`;
+  const params = new URLSearchParams();
+  Object.entries(filter ?? {}).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      value
+        .filter((v) => v !== undefined && v !== null)
+        .forEach((v) => params.append(key, String(v)));
+    } else {
+      params.append(key, String(value));
+    }
+  });
+  const query = params.toString();
+  return query ? `?${query}` : "";
 }
 
 export const api = {
@@ -165,8 +175,8 @@ export const api = {
       body: JSON.stringify(payloads),
     }),
 
-  listStockMovements: (filter?: { productId?: number }): Promise<StockMovement[]> =>
-    fetchJson(`/stock-movements${queryFrom({ productId: filter?.productId })}`),
+  listStockMovements: (filter?: { productId?: number; reasons?: string[] }): Promise<StockMovement[]> =>
+    fetchJson(`/stock-movements${queryFrom({ productId: filter?.productId, reason: filter?.reasons })}`),
 
   getInventoriesByProduct: (productId: number): Promise<Inventory[]> =>
     fetchJson(`/inventories/product/${productId}`),
