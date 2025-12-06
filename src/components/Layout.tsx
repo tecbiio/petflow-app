@@ -53,9 +53,18 @@ function Layout() {
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="rounded-lg bg-ink-900 px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-white text-ink-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-ink-900 hover:text-white hover:shadow-card"
+                title="Déconnexion"
               >
-                Déconnexion
+                <span className="sr-only">Déconnexion</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                  <path d="M12 2.25a.75.75 0 0 1 .75.75v8a.75.75 0 0 1-1.5 0v-8A.75.75 0 0 1 12 2.25Z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M6.322 5.428a.75.75 0 0 1 1.06.106 6.75 6.75 0 1 0 9.236 0 .75.75 0 1 1 1.166-.966 8.25 8.25 0 1 1-11.568 0 .75.75 0 0 1 .106-.106Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
               </button>
             </div>
           </div>
