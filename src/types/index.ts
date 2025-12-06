@@ -1,3 +1,15 @@
+export type Family = {
+  id: number;
+  name: string;
+};
+
+export type SubFamily = {
+  id: number;
+  name: string;
+  familyId: number;
+  family?: Family | null;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -6,6 +18,8 @@ export type Product = {
   price: number;
   isActive?: boolean;
   axonautProductId?: number | null;
+  family?: Family | null;
+  subFamily?: SubFamily | null;
   createdAt: string;
   updatedAt: string;
 };

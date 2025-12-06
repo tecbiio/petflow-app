@@ -32,8 +32,6 @@ function Sandbox() {
     mutationFn: () => {
       const payload = {
         apiKey: settings.axonautApiKey || "",
-        husseUsername: settings.husseUsername || "",
-        hussePassword: settings.hussePassword || "",
       };
       setPushRequest(payload);
       setPushResponse(null);

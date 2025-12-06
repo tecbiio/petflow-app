@@ -11,6 +11,8 @@ function Products() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeOnly, setActiveOnly] = useState(true);
+  const [familyFilter, setFamilyFilter] = useState<string>("");
+  const [subFamilyFilter, setSubFamilyFilter] = useState<string>("");
   const [newName, setNewName] = useState("");
   const [newSku, setNewSku] = useState("");
   const [newPrice, setNewPrice] = useState<string>("");
@@ -19,6 +21,12 @@ function Products() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
   const { data: products = [], isLoading } = useProducts({ active: activeOnly ? true : undefined });
+  const resetFilters = () => {
+    setSearch("");
+    setActiveOnly(true);
+    setFamilyFilter("");
+    setSubFamilyFilter("");
+  };
 
   const stockQueries = useQueries({
     queries:
@@ -49,14 +57,34 @@ function Products() {
     return map;
   }, [inventoryQueries, products]);
 
+  const families = useMemo(() => {
+    const values = new Set<string>();
+    products.forEach((p) => {
+      if (p.family?.name) values.add(p.family.name);
+    });
+    return Array.from(values).sort();
+  }, [products]);
+
+  const subFamilies = useMemo(() => {
+    const values = new Set<string>();
+    products.forEach((p) => {
+      if (familyFilter && p.family?.name !== familyFilter) return;
+      if (p.subFamily?.name) values.add(p.subFamily.name);
+    });
+    return Array.from(values).sort();
+  }, [familyFilter, products]);
+
   const filtered = useMemo(
     () =>
       products.filter(
         (p) =>
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          (p.sku ?? "").toLowerCase().includes(search.toLowerCase()),
+          (p.name.toLowerCase().includes(search.toLowerCase()) ||
+            (p.sku ?? "").toLowerCase().includes(search.toLowerCase())) &&
+          (!familyFilter || p.family?.name === familyFilter) &&
+          (!subFamilyFilter || p.subFamily?.name === subFamilyFilter) &&
+          (activeOnly ? p.isActive ?? true : true),
       ),
-    [products, search],
+    [activeOnly, familyFilter, products, search, subFamilyFilter],
   );
 
   const createProduct = useMutation({
@@ -120,26 +148,88 @@ function Products() {
         </button>
       </div>
 
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="glass-panel space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Nom ou SKU"
-            className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm md:w-72"
+            placeholder="Filtrer par nom ou SKU…"
+            className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm md:w-64"
           />
           <button
             type="button"
-          onClick={() => setActiveOnly((prev) => !prev)}
-          className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-            activeOnly ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700"
-          }`}
-        >
-          {activeOnly ? "Actifs" : "Tous"}
-        </button>
+            onClick={() => setActiveOnly((prev) => !prev)}
+            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+              activeOnly ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700"
+            }`}
+          >
+            {activeOnly ? "Actifs" : "Tous"}
+          </button>
+          <span className="ml-auto text-sm font-semibold text-ink-700">{filtered.length} résultats</span>
         </div>
-        <span className="text-sm font-semibold text-ink-700">{filtered.length} résultats</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-ink-500">Familles</span>
+          <button
+            type="button"
+            onClick={() => {
+              setFamilyFilter("");
+              setSubFamilyFilter("");
+            }}
+            className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+              !familyFilter ? "bg-ink-900 text-white shadow-card" : "text-ink-700 hover:bg-ink-50"
+            }`}
+          >
+            Toutes
+          </button>
+          {families.map((family) => (
+            <button
+              key={family}
+              type="button"
+              onClick={() => {
+                setFamilyFilter(family);
+                setSubFamilyFilter("");
+              }}
+              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+                familyFilter === family
+                  ? "bg-ink-900 text-white shadow-card"
+                  : "text-ink-700 hover:bg-ink-50"
+              }`}
+            >
+              {family}
+            </button>
+          ))}
+        </div>
+        {familyFilter ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-wide text-ink-500">Sous-familles</span>
+            <button
+              type="button"
+              onClick={() => setSubFamilyFilter("")}
+              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+                !subFamilyFilter
+                  ? "bg-ink-900 text-white shadow-card"
+                  : "text-ink-700 hover:bg-ink-50"
+              }`}
+            >
+              Toutes
+            </button>
+            {subFamilies.map((sub) => (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => setSubFamilyFilter(sub)}
+                className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+                  subFamilyFilter === sub
+                    ? "bg-ink-900 text-white shadow-card"
+                    : "text-ink-700 hover:bg-ink-50"
+                }`}
+              >
+                {sub}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       {isLoading ? <p className="text-sm text-ink-500">Chargement…</p> : null}
       <div className="grid gap-3 md:grid-cols-2">

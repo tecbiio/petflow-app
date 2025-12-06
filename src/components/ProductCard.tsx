@@ -19,6 +19,12 @@ function ProductCard({ product, stock = 0, inventoryMissing }: Props) {
         <div className="space-y-1">
           <p className="text-sm text-ink-500">{product.sku}</p>
           <p className="text-lg font-semibold text-ink-900">{product.name}</p>
+          {(product.family || product.subFamily) ? (
+            <p className="text-xs text-ink-600">
+              {product.family?.name ?? "Famille inconnue"}
+              {product.subFamily ? ` · ${product.subFamily.name}` : ""}
+            </p>
+          ) : null}
           {inventoryMissing ? (
             <InventoryStatusBadge />
           ) : null}

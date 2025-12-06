@@ -21,6 +21,14 @@ type HusseFetchResult = {
   encounteredLoginPage: boolean;
 };
 
+type HusseImportResult = {
+  total: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  encounteredLoginPage: boolean;
+};
+
 type AxonautLookupResult = Record<string, { id?: string | number; raw?: unknown }>;
 type DocumentParseResult = { lines: ParsedDocumentLine[] };
 
@@ -225,13 +233,27 @@ export const api = {
       body: JSON.stringify({ urls }),
     }),
 
+  husseSetConfig: (payload: { username: string; password: string }): Promise<{ ok: boolean }> =>
+    fetchJson("/husse/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  husseGetConfig: (): Promise<{ hasCredentials: boolean }> => fetchJson("/husse/config"),
+
+  husseImportProducts: (payload: { username?: string; password?: string }): Promise<HusseImportResult> =>
+    fetchJson("/husse/import-products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload ?? {}),
+    }),
+
   axonautSetConfig: (payload: {
     apiKey: string;
     baseUrl?: string;
     updateStockUrlTemplate?: string;
     lookupProductsUrlTemplate?: string;
-    husseUsername?: string;
-    hussePassword?: string;
   }): Promise<{ ok: boolean }> =>
     fetchJson("/axonaut/config", {
       method: "POST",

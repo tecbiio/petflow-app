@@ -97,10 +97,18 @@ function ProductDetail() {
               </span>
             </div>
             <p className="text-sm text-ink-600">{product.description}</p>
-          <p className="mt-2 text-sm font-semibold text-brand-700">
-            {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
-          </p>
-        </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {product.family ? (
+                <span className="pill bg-ink-100 text-ink-800">Famille : {product.family.name}</span>
+              ) : null}
+              {product.subFamily ? (
+                <span className="pill bg-ink-50 text-ink-800">Sous-famille : {product.subFamily.name}</span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-sm font-semibold text-brand-700">
+              {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
+            </p>
+          </div>
         <div className="flex items-center gap-2">
           <StockBadge quantity={stock?.stock} />
           {!hasInventory ? (
