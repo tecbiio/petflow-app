@@ -32,6 +32,10 @@ function Settings() {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+        Les identifiants sensibles ne sont plus persistés dans le navigateur : ils restent en mémoire le temps de la session et sont envoyés au core lors de la sauvegarde.
+      </div>
+
       <div className="glass-panel p-4">
         <h3 className="text-sm font-semibold text-ink-900">Extranet Husse</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-3">

@@ -8,7 +8,11 @@ import {
   StockSnapshot,
 } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : "http://localhost:3000");
 
 type ApiProduct = Omit<Product, "price"> & { price: string | number };
 
@@ -59,11 +63,19 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     ...(options?.headers ?? {}),
   };
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`API ${response.status}: ${text || response.statusText}`);
+    const message = text || response.statusText;
+    if (response.status === 401) {
+      throw new Error("Authentification requise. Merci de vous reconnecter.");
+    }
+    throw new Error(`API ${response.status}: ${message}`);
   }
 
   if (response.status === 204) return undefined as T;
@@ -240,12 +252,10 @@ export const api = {
     }),
 
   axonautGetConfig: (): Promise<{
-    apiKey: string;
+    hasApiKey: boolean;
     baseUrl?: string;
     updateStockUrlTemplate?: string;
     lookupProductsUrlTemplate?: string;
-    husseUsername?: string;
-    hussePassword?: string;
   } | null> => fetchJson("/axonaut/config"),
 
   axonautLookup: (references: string[]): Promise<AxonautLookupResult> =>
@@ -294,4 +304,18 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+
+  login: (username: string, password: string): Promise<{ user: { username: string }; expiresAt: number }> =>
+    fetchJson("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }),
+
+  logout: (): Promise<{ ok: boolean }> =>
+    fetchJson("/auth/logout", {
+      method: "POST",
+    }),
+
+  session: (): Promise<{ user: { username: string }; expiresAt: number }> => fetchJson("/auth/me"),
 };

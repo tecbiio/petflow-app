@@ -1,6 +1,6 @@
-import { NavLink, useLocation, Link } from "react-router-dom";
-import { ReactNode } from "react";
+import { NavLink, useLocation, Link, Outlet } from "react-router-dom";
 import logo from "../assets/petflow-logo.svg";
+import { useAuth } from "./AuthProvider";
 
 const links = [
   { to: "/", label: "Tableau de bord" },
@@ -11,19 +11,16 @@ const links = [
   { to: "/settings", label: "Réglages" },
 ];
 
-type Props = {
-  children: ReactNode;
-};
-
-function Layout({ children }: Props) {
+function Layout() {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen text-ink-900">
       <div className="relative min-h-screen">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-100 via-white to-ink-50" />
         <header className="relative border-b border-white/60 bg-white/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 gap-4">
             <Link to="/" className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-brand-100">
                 <img src={logo} alt="PetFlow" className="h-full w-full object-contain" />
@@ -49,6 +46,18 @@ function Layout({ children }: Props) {
                 </NavLink>
               ))}
             </nav>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-ink-50 px-3 py-1.5 text-xs font-medium text-ink-700">
+                {user?.username ?? "Session"}
+              </div>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="rounded-lg bg-ink-900 px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+              >
+                Déconnexion
+              </button>
+            </div>
           </div>
         </header>
 
@@ -60,7 +69,7 @@ function Layout({ children }: Props) {
               </h1>
             </div>
           </div>
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>

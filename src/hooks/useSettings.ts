@@ -18,7 +18,10 @@ function read(): AppSettings {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as AppSettings) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as AppSettings;
+    const { husseUsername, hussePassword, axonautApiKey, ...safe } = parsed;
+    return safe;
   } catch {
     return {};
   }
@@ -27,7 +30,8 @@ function read(): AppSettings {
 function write(settings: AppSettings) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    const { husseUsername, hussePassword, axonautApiKey, ...safe } = settings;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   } catch {
     // ignore storage errors
   }
