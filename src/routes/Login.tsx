@@ -1,15 +1,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../components/AuthProvider";
+import { useToast } from "../components/ToastProvider";
 import logo from "../assets/petflow-logo.svg";
 
 function Login() {
   const { login, status } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const redirect = (location.state as { from?: { pathname?: string } })?.from?.pathname || "/";
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,10 +21,12 @@ function Login() {
     setError(null);
     setLoading(true);
     try {
-      await login(username.trim(), password);
+      await login(email.trim(), password);
       navigate(redirect, { replace: true });
     } catch (err) {
-      setError((err as Error).message || "Connexion impossible");
+      const message = (err as Error).message || "Connexion impossible";
+      setError(message);
+      toast(message, "error");
     } finally {
       setLoading(false);
     }
@@ -49,11 +53,12 @@ function Login() {
 
         <form className="space-y-3" onSubmit={handleSubmit}>
           <label className="text-sm text-ink-700">
-            Identifiant
+            Email
             <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+              type="email"
               autoComplete="username"
               required
             />
@@ -79,7 +84,7 @@ function Login() {
           </button>
         </form>
         <p className="mt-3 text-xs text-ink-500">
-          Accès restreint : configurez AUTH_USER / AUTH_PASSWORD sur le core pour activer la connexion.
+          Accès réservé aux utilisateurs autorisés. Besoin d’aide ? Contacte ton administrateur.
         </p>
       </div>
     </div>

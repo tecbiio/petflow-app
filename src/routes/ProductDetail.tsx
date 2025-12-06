@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useProduct } from "../hooks/useProducts";
@@ -16,7 +16,7 @@ function ProductDetail() {
   const productNumericId = Number(productId);
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
-  const { data: product } = useProduct(productNumericId);
+  const { data: product, error: productError, isError } = useProduct(productNumericId);
   const { data: stock } = useProductStock(productNumericId);
   const { data: variations = [] } = useProductVariations(productNumericId);
   const { data: movements = [] } = useMovementsByProduct(productNumericId);
@@ -57,8 +57,24 @@ function ProductDetail() {
     onError: (error: Error) => setMessage(error.message),
   });
 
+  if (!Number.isInteger(productNumericId) || productNumericId <= 0) {
+    return <Navigate to="/products" replace />;
+  }
+
+  if (isError) {
+    return (
+      <div className="glass-panel p-4">
+        <p className="text-sm text-ink-700">Produit introuvable ou inaccessible.</p>
+        <p className="text-xs text-ink-500">{(productError as Error)?.message ?? ""}</p>
+        <Link to="/products" className="mt-2 inline-block text-sm font-semibold text-brand-700 underline">
+          Retour au catalogue
+        </Link>
+      </div>
+    );
+  }
+
   if (!product) {
-    return <p className="text-sm text-ink-600">Produit introuvable.</p>;
+    return <p className="text-sm text-ink-600">Chargement…</p>;
   }
 
   const stockQuantity = stock?.stock ?? 0;

@@ -305,11 +305,15 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  login: (username: string, password: string): Promise<{ user: { username: string }; expiresAt: number }> =>
+  login: (
+    email: string,
+    password: string,
+    tenant?: string,
+  ): Promise<{ user: { email: string; role: string; tenant: string; dbUrl?: string }; expiresAt: number }> =>
     fetchJson("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password, tenant }),
     }),
 
   logout: (): Promise<{ ok: boolean }> =>
@@ -317,5 +321,6 @@ export const api = {
       method: "POST",
     }),
 
-  session: (): Promise<{ user: { username: string }; expiresAt: number }> => fetchJson("/auth/me"),
+  session: (): Promise<{ user: { email: string; role: string; tenant: string; dbUrl?: string }; expiresAt: number }> =>
+    fetchJson("/auth/me"),
 };

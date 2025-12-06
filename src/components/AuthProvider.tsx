@@ -2,12 +2,12 @@ import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, 
 import { api } from "../api/client";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
-type User = { username: string };
+type User = { email: string; role: string; tenant: string; dbUrl?: string };
 
 type AuthContextValue = {
   status: AuthStatus;
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string, tenant?: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -30,8 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const res = await api.login(username, password);
+  const login = useCallback(async (email: string, password: string, tenant?: string) => {
+    const res = await api.login(email, password, tenant);
     setUser(res.user);
     setStatus("authenticated");
   }, []);

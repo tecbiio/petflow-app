@@ -48,7 +48,7 @@ function Layout() {
             </nav>
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-ink-50 px-3 py-1.5 text-xs font-medium text-ink-700">
-                {user?.username ?? "Session"}
+                {user ? `${user.email} · ${user.tenant}` : "Session"}
               </div>
               <button
                 type="button"
