@@ -85,6 +85,22 @@ function Settings() {
     onError: (err: Error) => toast(err.message, "error"),
   });
 
+  const importAxonautProducts = useMutation({
+    mutationFn: () => api.axonautImportProducts(),
+    onSuccess: (res) => {
+      const details = [`${res.total} produits`, `${res.created} créés`, `${res.updated} mis à jour`].join(" · ");
+      toast(
+        `Import Axonaut terminé : ${details}${res.packagingCreated ? ` · ${res.packagingCreated} conditionnements` : ""}`,
+        "success",
+      );
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["packagings"] });
+      queryClient.invalidateQueries({ queryKey: ["families"] });
+      queryClient.invalidateQueries({ queryKey: ["sub-families"] });
+    },
+    onError: (err: Error) => toast(err.message, "error"),
+  });
+
   const handleSaveAll = (e: FormEvent) => {
     e.preventDefault();
     if (saveSettings.isPending) return;
@@ -212,15 +228,18 @@ function Settings() {
             />
           </label>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => setConfirmImportOpen(true)}
             className="rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:-translate-y-0.5 hover:shadow-card"
             disabled={importHusseProducts.isPending}
           >
-            {importHusseProducts.isPending ? "Import en cours…" : "Importer les produits depuis l'extranet"}
+            {importHusseProducts.isPending ? "Import en cours…" : "Importer les produits depuis l'extranet Husse"}
           </button>
+          {!husseConfig.data?.hasCredentials ? (
+            <span className="text-xs text-amber-700">Ajoutez des identifiants Husse pour activer l'import.</span>
+          ) : null}
         </div>
       </div>
 
@@ -245,6 +264,19 @@ function Settings() {
             />
           </label>
         </form>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => importAxonautProducts.mutate()}
+            className="rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:-translate-y-0.5 hover:shadow-card"
+            disabled={importAxonautProducts.isPending || !axonautConfig.data?.hasApiKey}
+          >
+            {importAxonautProducts.isPending ? "Import en cours…" : "Importer les produits depuis Axonaut"}
+          </button>
+          {!axonautConfig.data?.hasApiKey ? (
+            <span className="text-xs text-amber-700">Ajoutez une clé Axonaut pour activer l'import.</span>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex items-center justify-end">

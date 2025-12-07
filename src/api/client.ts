@@ -360,6 +360,17 @@ export const api = {
       body: JSON.stringify({ references }),
     }),
 
+  axonautImportProducts: (): Promise<{
+    total: number;
+    created: number;
+    updated: number;
+    packagingCreated?: number;
+    errors?: string[];
+  }> =>
+    fetchJson("/axonaut/import-products", {
+      method: "POST",
+    }),
+
   axonautTestRequest: (payload: { url?: string; path?: string; method?: "GET" | "POST" | "PATCH"; body?: unknown }): Promise<{
     ok: boolean;
     status: number;
