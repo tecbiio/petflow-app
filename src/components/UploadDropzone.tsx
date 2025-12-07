@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import ConfirmModal from "./ConfirmModal";
 import { api } from "../api/client";
-import { DocumentType, ParsedDocumentLine } from "../types";
+import { DocumentType, ParsedDocumentLine, MovementSign } from "../types";
 import { useEffect } from "react";
 
 type Props = {
@@ -12,6 +12,7 @@ type Props = {
 function UploadDropzone({ stockLocationId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentType>("FACTURE");
+  const [movementSign, setMovementSign] = useState<MovementSign>("OUT");
   const [message, setMessage] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParsedDocumentLine[] | null>(null);
   const [sourceName, setSourceName] = useState<string | undefined>(undefined);
@@ -39,6 +40,7 @@ function UploadDropzone({ stockLocationId }: Props) {
         docType,
         stockLocationId,
         sourceDocumentId: sourceName,
+        movementSign,
         lines: preview ?? [],
       }),
     onSuccess: (res) => {
@@ -92,6 +94,17 @@ function UploadDropzone({ stockLocationId }: Props) {
     parseMutation.mutate();
   };
 
+  const defaultSignForDoc = (type: DocumentType): MovementSign => {
+    switch (type) {
+      case "FACTURE":
+        return "IN"; // option inversée par défaut
+      case "AVOIR":
+        return "OUT";
+      default:
+        return "IN";
+    }
+  };
+
   return (
     <>
       <form
@@ -109,13 +122,28 @@ function UploadDropzone({ stockLocationId }: Props) {
             Type
             <select
               value={docType}
-              onChange={(e) => setDocType(e.target.value as DocumentType)}
+              onChange={(e) => {
+                const next = e.target.value as DocumentType;
+                setDocType(next);
+                setMovementSign(defaultSignForDoc(next));
+              }}
               className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
             >
-              <option value="FACTURE">Facture (sortie)</option>
-              <option value="AVOIR">Avoir (entrée)</option>
-              <option value="BON_LIVRAISON">Bon de livraison (entrée)</option>
+              <option value="FACTURE">Facture</option>
+              <option value="AVOIR">Avoir</option>
+              <option value="BON_LIVRAISON">Bon de livraison</option>
               <option value="AUTRE">Autre</option>
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2">
+            Sens des mouvements
+            <select
+              value={movementSign}
+              onChange={(e) => setMovementSign(e.target.value as MovementSign)}
+              className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
+            >
+              <option value="IN">Entrée (+)</option>
+              <option value="OUT">Sortie (-)</option>
             </select>
           </label>
           <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700">

@@ -4,8 +4,12 @@ import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
+import { useFamilies } from "../hooks/useFamilies";
+import { usePackagings } from "../hooks/usePackagings";
 import { api } from "../api/client";
 import { Inventory } from "../types";
+import { validateProductPayload } from "../lib/constraints";
+import SearchSelect from "../components/SearchSelect";
 
 function Products() {
   const queryClient = useQueryClient();
@@ -16,11 +20,20 @@ function Products() {
   const [newName, setNewName] = useState("");
   const [newSku, setNewSku] = useState("");
   const [newPrice, setNewPrice] = useState<string>("");
+  const [newPriceVdi, setNewPriceVdi] = useState<string>("");
+  const [newPriceDistributor, setNewPriceDistributor] = useState<string>("");
+  const [newPriceSale, setNewPriceSale] = useState<string>("");
+  const [newPurchasePrice, setNewPurchasePrice] = useState<string>("");
+  const [newTvaRate, setNewTvaRate] = useState<string>("");
+  const [newPackagingId, setNewPackagingId] = useState<number | null>(null);
+  const [newPackagingSearch, setNewPackagingSearch] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
   const { data: products = [], isLoading } = useProducts({ active: activeOnly ? true : undefined });
+  const { data: familiesData = [] } = useFamilies();
+  const { data: packagings = [] } = usePackagings();
   const resetFilters = () => {
     setSearch("");
     setActiveOnly(true);
@@ -59,20 +72,30 @@ function Products() {
 
   const families = useMemo(() => {
     const values = new Set<string>();
+    familiesData.forEach((f) => values.add(f.name));
     products.forEach((p) => {
       if (p.family?.name) values.add(p.family.name);
     });
     return Array.from(values).sort();
-  }, [products]);
+  }, [familiesData, products]);
 
   const subFamilies = useMemo(() => {
     const values = new Set<string>();
+    familiesData.forEach((f) => {
+      if (familyFilter && f.name !== familyFilter) return;
+      f.subFamilies?.forEach((s) => values.add(s.name));
+    });
     products.forEach((p) => {
       if (familyFilter && p.family?.name !== familyFilter) return;
       if (p.subFamily?.name) values.add(p.subFamily.name);
     });
     return Array.from(values).sort();
-  }, [familyFilter, products]);
+  }, [familiesData, familyFilter, products]);
+
+  const packagingOptions = useMemo(
+    () => packagings.map((p) => ({ id: p.id, label: p.name })),
+    [packagings],
+  );
 
   const filtered = useMemo(
     () =>
@@ -94,6 +117,13 @@ function Products() {
       setNewName("");
       setNewSku("");
       setNewPrice("");
+      setNewPriceVdi("");
+      setNewPriceDistributor("");
+      setNewPriceSale("");
+      setNewPurchasePrice("");
+      setNewTvaRate("");
+      setNewPackagingId(null);
+      setNewPackagingSearch("");
       setNewDescription("");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       setShowCreateModal(false);
@@ -117,16 +147,39 @@ function Products() {
     event.preventDefault();
     setFormMessage(null);
     const price = Number(newPrice);
-    if (!newName || !newSku || Number.isNaN(price)) {
-      setFormMessage("Renseignez au moins nom, SKU et prix.");
+    const priceVdiHt = Number(newPriceVdi);
+    const priceDistributorHt = Number(newPriceDistributor);
+    const priceSaleHt = Number(newPriceSale || newPrice);
+    const purchasePrice = Number(newPurchasePrice);
+    const tvaRate = Number(newTvaRate);
+    const { payload, errors } = validateProductPayload(
+      {
+        name: newName,
+        sku: newSku,
+        price,
+        priceVdiHt,
+        priceDistributorHt,
+        priceSaleHt,
+        purchasePrice,
+        tvaRate,
+        description: newDescription || null,
+        packagingId: newPackagingId ?? null,
+      },
+      { partial: false },
+    );
+
+    if (errors.length > 0) {
+      setFormMessage(errors.join(" · "));
       return;
     }
-    createProduct.mutate({
-      name: newName,
-      sku: newSku,
-      price,
-      description: newDescription || null,
-    });
+
+    createProduct.mutate(payload as Required<typeof payload>);
+    setNewPriceVdi("");
+    setNewPriceDistributor("");
+    setNewPriceSale("");
+    setNewPurchasePrice("");
+    setNewTvaRate("");
+    setNewPackaging("");
   };
 
   return (
@@ -299,6 +352,83 @@ function Products() {
                         className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
                         placeholder="9.90"
                       />
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <label className="text-sm text-ink-700">
+                      Tarif VDI HT (€)
+                      <input
+                        value={newPriceVdi}
+                        onChange={(e) => setNewPriceVdi(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="8.50"
+                      />
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Tarif Distributeur HT (€)
+                      <input
+                        value={newPriceDistributor}
+                        onChange={(e) => setNewPriceDistributor(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="7.90"
+                      />
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Prix de vente HT (€)
+                      <input
+                        value={newPriceSale}
+                        onChange={(e) => setNewPriceSale(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="9.90"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <label className="text-sm text-ink-700">
+                      Prix d'achat (€)
+                      <input
+                        value={newPurchasePrice}
+                        onChange={(e) => setNewPurchasePrice(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="6.20"
+                      />
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Taux de TVA (%)
+                      <input
+                        value={newTvaRate}
+                        onChange={(e) => setNewTvaRate(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="20"
+                      />
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Conditionnement
+                      <div className="mt-1">
+                        <SearchSelect
+                          placeholder="Conditionnement"
+                          valueId={newPackagingId ?? undefined}
+                          search={newPackagingSearch}
+                          onSearch={setNewPackagingSearch}
+                          options={packagingOptions.filter((opt) =>
+                            opt.label.toLowerCase().includes(newPackagingSearch.toLowerCase()),
+                          )}
+                          onSelect={(opt) => {
+                            setNewPackagingId(opt ? Number(opt.id) : null);
+                            setNewPackagingSearch(opt?.label ?? "");
+                          }}
+                        />
+                      </div>
                     </label>
                   </div>
                   <label className="block text-sm text-ink-700">

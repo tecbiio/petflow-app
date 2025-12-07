@@ -1,28 +1,21 @@
-# PetFlow (front)
+# Petflow App (Front)
 
-Interface React + Vite + Tailwind pour piloter les stocks en s'appuyant sur l'API NestJS/Prisma décrite dans la capture (produits, emplacements, inventaires, mouvements).
+Interface React 18 + Vite + Tailwind pour piloter les produits, stocks, mouvements et réglages.
+
+## Prérequis
+- Node 20+, npm.
+- Copier `petflow-app/.env.example` vers `.env.local` puis définir `VITE_API_URL` (ex. `http://localhost:3000`).  
+  Option : `VITE_USE_MOCKS=true` pour afficher l’UI sans backend.
 
 ## Démarrage
+- Installer : `npm install`
+- Dev : `npm run dev -- --host` (ouvre sur `http://localhost:5173`)
+- Build/preview : `npm run build && npm run preview -- --host`
 
-```bash
-cp .env.example .env.local   # ajuster VITE_API_URL
-npm install
-npm run dev
-```
+## Connexion et données
+- L’API ciblée doit être le core (`petflow-core`) avec les bases initialisées (master + base du tenant).
+- Authentification via les comptes créés dans la base master (`npm run tenants:bootstrap` côté core).
+- Familles/sous-familles/conditionnements et produits proviennent de la base applicative du tenant.
 
-- `npm run build` pour le build statique, `npm run preview` pour le servir.
-- `VITE_USE_MOCKS=true` permet de tester l'UI sans backend (jeu de données embarqué).
-
-## Écrans clés
-
-- Tableau de bord : produits sous seuil, mouvements récents, KPI.
-- Produits : liste, aperçu rapide, fiche complète avec stock courant, variations, mouvements et inventaires (/products, /stock/:id, /stock/:id/variations, /stock-movements/product/:id, /inventories/product/:id).
-- Emplacements : liste, mise en avant du défaut, création simple (/stock-locations, /stock-locations/default).
-- Mouvements & inventaires : import drag & drop d'un document (POST /stock-movements en multipart), ajustement manuel, inventaire partiel/complet (POST /inventories).
-
-## Stack
-
-- React 18 + Vite 5 + TypeScript.
-- TailwindCSS pour le design.
-- TanStack Query pour la data/les appels API.
-- React Router pour le routage.
+## Docker
+- Via la racine du repo : `docker-compose up --build petflow-app` (dépend de `petflow-core` et `pdf2json` déjà lancés ou dans le même `up`).

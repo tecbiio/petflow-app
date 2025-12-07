@@ -1,6 +1,7 @@
 export type Family = {
   id: number;
   name: string;
+  subFamilies?: SubFamily[];
 };
 
 export type SubFamily = {
@@ -16,6 +17,13 @@ export type Product = {
   sku: string;
   description: string | null;
   price: number;
+  priceVdiHt: number;
+  priceDistributorHt: number;
+  priceSaleHt: number;
+  purchasePrice: number;
+  tvaRate: number;
+  packagingId?: number | null;
+  packaging?: Packaging | null;
   isActive?: boolean;
   axonautProductId?: number | null;
   family?: Family | null;
@@ -58,6 +66,13 @@ export type StockSnapshot = {
 
 export type StockVariation = StockMovement;
 
+export type Packaging = {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DocumentType = "FACTURE" | "AVOIR" | "BON_LIVRAISON" | "AUTRE";
 
 export type ParsedDocumentLine = {
@@ -69,3 +84,5 @@ export type ParsedDocumentLine = {
   axonautProductName?: string;
   axonautProductPrice?: number;
 };
+
+export type MovementSign = "IN" | "OUT";

@@ -6,6 +6,7 @@ import {
   StockLocation,
   StockMovement,
   StockSnapshot,
+  Packaging,
 } from "../types";
 
 const API_URL =
@@ -14,7 +15,17 @@ const API_URL =
     ? `${window.location.protocol}//${window.location.hostname}:3000`
     : "http://localhost:3000");
 
-type ApiProduct = Omit<Product, "price"> & { price: string | number };
+type ApiProduct = Omit<
+  Product,
+  "price" | "priceVdiHt" | "priceDistributorHt" | "priceSaleHt" | "purchasePrice" | "tvaRate"
+> & {
+  price: string | number;
+  priceVdiHt?: string | number;
+  priceDistributorHt?: string | number;
+  priceSaleHt?: string | number;
+  purchasePrice?: string | number;
+  tvaRate?: string | number;
+};
 
 type HusseFetchResult = {
   pages: { url: string; html: string }[];
@@ -39,7 +50,15 @@ type UpsertProductPayload = {
   sku: string;
   description?: string | null;
   price: number;
+  priceVdiHt: number;
+  priceDistributorHt: number;
+  priceSaleHt: number;
+  purchasePrice: number;
+  tvaRate: number;
+  packagingId?: number | null;
   isActive?: boolean;
+  familyId?: number | null;
+  subFamilyId?: number | null;
 };
 
 type UpsertLocationPayload = {
@@ -94,6 +113,11 @@ function mapProduct(product: ApiProduct): Product {
   return {
     ...product,
     price: typeof product.price === "string" ? Number(product.price) : product.price,
+    priceVdiHt: Number(product.priceVdiHt ?? product.price),
+    priceDistributorHt: Number(product.priceDistributorHt ?? product.price),
+    priceSaleHt: Number(product.priceSaleHt ?? product.price),
+    purchasePrice: Number(product.purchasePrice ?? 0),
+    tvaRate: Number(product.tvaRate ?? 0),
   };
 }
 
@@ -240,6 +264,55 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  listPackagings: (): Promise<Packaging[]> => fetchJson("/packagings"),
+
+  createPackaging: (name: string): Promise<Packaging> =>
+    fetchJson("/packagings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+
+  updatePackaging: (id: number, name: string): Promise<Packaging> =>
+    fetchJson(`/packagings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+
+  listFamilies: (): Promise<Family[]> => fetchJson("/families"),
+
+  createFamily: (name: string): Promise<Family> =>
+    fetchJson("/families", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+
+  updateFamily: (id: number, name: string): Promise<Family> =>
+    fetchJson(`/families/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+
+  listSubFamilies: (familyId?: number): Promise<SubFamily[]> =>
+    fetchJson(`/sub-families${familyId ? `?familyId=${familyId}` : ""}`),
+
+  createSubFamily: (familyId: number, name: string): Promise<SubFamily> =>
+    fetchJson("/sub-families", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ familyId, name }),
+    }),
+
+  updateSubFamily: (id: number, body: { name?: string; familyId?: number }): Promise<SubFamily> =>
+    fetchJson(`/sub-families/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
   husseGetConfig: (): Promise<{ hasCredentials: boolean }> => fetchJson("/husse/config"),
 
   husseImportProducts: (payload: { username?: string; password?: string }): Promise<HusseImportResult> =>
@@ -314,6 +387,7 @@ export const api = {
     docType: DocumentType;
     stockLocationId?: number;
     sourceDocumentId?: string;
+    movementSign?: "IN" | "OUT";
     lines: ParsedDocumentLine[];
   }): Promise<{
     created: number;

@@ -33,7 +33,7 @@ function ProductCard({ product, stock = 0, inventoryMissing }: Props) {
       </div>
       <p className="text-sm text-ink-600 line-clamp-2">{product.description}</p>
       <p className="text-sm font-semibold text-brand-700">
-        {Number.isFinite(product.price) ? `${product.price.toFixed(2)} €` : "—"}
+        {Number.isFinite(product.priceSaleHt) ? `${product.priceSaleHt.toFixed(2)} € HT` : "—"}
       </p>
     </Link>
   );
