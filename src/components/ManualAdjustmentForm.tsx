@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { Product, StockLocation } from "../types";
 
+const todayIsoDate = () => new Date().toISOString().slice(0, 10);
+
 type Props = {
   products: Product[];
   locations: StockLocation[];
@@ -16,6 +18,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
   const [quantity, setQuantity] = useState(0);
   const [reason, setReason] = useState("");
   const [type, setType] = useState<"IN" | "OUT" | "ADJUST">("ADJUST");
+  const [movementDate, setMovementDate] = useState(todayIsoDate);
   const [message, setMessage] = useState<string | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -69,6 +72,11 @@ function ManualAdjustmentForm({ products, locations }: Props) {
       setMessage("Choisissez produit, emplacement et quantité non nulle.");
       return;
     }
+    const parsedDate = new Date(movementDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      setMessage("Date invalide.");
+      return;
+    }
     const signedQuantity =
       type === "IN" ? Math.abs(quantity) : type === "OUT" ? -Math.abs(quantity) : quantity;
     createMovement.mutate({
@@ -76,7 +84,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
       stockLocationId: locationId,
       quantityDelta: signedQuantity,
       reason: reason || type,
-      createdAt: new Date().toISOString(),
+      createdAt: parsedDate.toISOString(),
     });
   };
 
@@ -130,6 +138,15 @@ function ManualAdjustmentForm({ products, locations }: Props) {
           </select>
         </label>
       </div>
+      <label className="mt-3 block text-sm text-ink-700">
+        Date du mouvement
+        <input
+          type="date"
+          value={movementDate}
+          onChange={(e) => setMovementDate(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+        />
+      </label>
       <label className="mt-3 block text-sm text-ink-700">
         Motif / référence
         <input

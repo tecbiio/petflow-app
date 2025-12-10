@@ -13,6 +13,7 @@ function UploadDropzone({ stockLocationId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentType>("FACTURE");
   const [movementSign, setMovementSign] = useState<MovementSign>("OUT");
+  const [createdAt, setCreatedAt] = useState<string | undefined>();
   const [message, setMessage] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParsedDocumentLine[] | null>(null);
   const [sourceName, setSourceName] = useState<string | undefined>(undefined);
@@ -41,6 +42,7 @@ function UploadDropzone({ stockLocationId }: Props) {
         stockLocationId,
         sourceDocumentId: sourceName,
         movementSign,
+        createdAt,
         lines: preview ?? [],
       }),
     onSuccess: (res) => {
@@ -145,6 +147,15 @@ function UploadDropzone({ stockLocationId }: Props) {
               <option value="IN">Entrée (+)</option>
               <option value="OUT">Sortie (-)</option>
             </select>
+          </label>
+          <label className="inline-flex items-center gap-2">
+            Date des mouvements
+            <input
+              type="date"
+              value={createdAt ?? ""}
+              onChange={(e) => setCreatedAt(e.target.value || undefined)}
+              className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
+            />
           </label>
           <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700">
             Emplacement #{stockLocationId}

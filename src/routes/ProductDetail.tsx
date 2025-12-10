@@ -14,6 +14,7 @@ import { api } from "../api/client";
 import StockChart from "../components/StockChart";
 import { validateProductPayload } from "../lib/constraints";
 import SearchSelect, { SelectOption } from "../components/SearchSelect";
+import MovementInventoryModal from "../components/MovementInventoryModal";
 
 function ProductDetail() {
   const { productId = "" } = useParams();
@@ -60,6 +61,7 @@ function ProductDetail() {
   const { data: inventories = [] } = useInventoriesByProduct(productNumericId);
   const { data: locations = [] } = useStockLocations();
   const { data: packagings = [] } = usePackagings();
+  const [showMovementModal, setShowMovementModal] = useState(false);
   const hasInventory = inventories.length > 0;
 
   const firstMovementDate = useMemo(() => {
@@ -526,12 +528,14 @@ function ProductDetail() {
               >
                 {product.isActive ?? true ? "Archiver" : "Réactiver"}
               </button>
-              <Link
-                to="/documents"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+              <button
+                type="button"
+                onClick={() => setShowMovementModal(true)}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
+                disabled={locations.length === 0}
               >
                 Ajuster / inventaire
-              </Link>
+              </button>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -678,6 +682,17 @@ function ProductDetail() {
           )}
         </div>
       </div>
+
+      <MovementInventoryModal
+        open={showMovementModal}
+        onOpenChange={setShowMovementModal}
+        products={product ? [product] : []}
+        locations={locations}
+        defaultProductId={product?.id}
+        defaultLocationId={locations.find((l) => l.isDefault)?.id ?? locations[0]?.id}
+        subtitle="Ajustement depuis la fiche produit"
+        showTrigger={false}
+      />
     </div>
   );
 }

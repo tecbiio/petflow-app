@@ -1,20 +1,13 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { Inventory, StockMovement } from "../types";
+import MovementInventoryModal from "../components/MovementInventoryModal";
+import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel } from "../lib/stockReasons";
+import { api } from "../api/client";
 
 type TypeFilter = "movement" | "inventory";
-type Option = { id: number; label: string; hint?: string };
-const STOCK_MOVEMENT_REASONS = ["FACTURE", "AVOIR", "PERTE", "CASSE", "DON"] as const;
-type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
-
-function formatReasonLabel(reason: StockMovementReason) {
-  const lower = reason.replace(/_/g, " ").toLowerCase();
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
-}
 
 function useAnchorRect() {
   const ref = useRef<HTMLInputElement | null>(null);
@@ -45,21 +38,11 @@ function Movements() {
   const [productSearch, setProductSearch] = useState("");
   const [productFilterFocused, setProductFilterFocused] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [entryMode, setEntryMode] = useState<"movement" | "inventory">("movement");
-  const [movementProductId, setMovementProductId] = useState<number | undefined>();
-  const [movementLocationId, setMovementLocationId] = useState<number | undefined>();
-  const [entryQuantity, setEntryQuantity] = useState(0);
-  const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUST">("ADJUST");
-  const [movementReason, setMovementReason] = useState("");
   const [movementReasonsFilter, setMovementReasonsFilter] = useState<StockMovementReason[]>([]);
-  const [movementProductSearch, setMovementProductSearch] = useState("");
-  const [movementLocationSearch, setMovementLocationSearch] = useState("");
-  const [formMessage, setFormMessage] = useState<string | null>(null);
   const filterAnchor = useAnchorRect();
 
   const { data: products = [] } = useProducts();
   const { data: locations = [] } = useStockLocations();
-  const queryClient = useQueryClient();
 
   const productId = productFilter === "all" ? undefined : productFilter;
   const reasonsFilter = movementReasonsFilter.length > 0 ? movementReasonsFilter : undefined;
@@ -110,118 +93,11 @@ function Movements() {
     [productSearch, products],
   );
 
-  const movementProductOptions: Option[] = useMemo(
-    () =>
-      products
-        .filter(
-          (p) =>
-            p.name.toLowerCase().includes(movementProductSearch.toLowerCase()) ||
-            p.sku.toLowerCase().includes(movementProductSearch.toLowerCase()),
-        )
-        .slice(0, 10)
-        .map((p) => ({ id: p.id, label: p.name, hint: p.sku })),
-    [products, movementProductSearch],
-  );
-
-  const movementLocationOptions: Option[] = useMemo(
-    () =>
-      locations
-        .filter(
-          (l) =>
-            l.name.toLowerCase().includes(movementLocationSearch.toLowerCase()) ||
-            l.code.toLowerCase().includes(movementLocationSearch.toLowerCase()),
-        )
-        .slice(0, 10)
-        .map((l) => ({ id: l.id, label: l.name, hint: l.code })),
-    [locations, movementLocationSearch],
-  );
-
-
-  useEffect(() => {
-    if (!movementLocationId) {
-      const def = locations.find((l) => l.isDefault)?.id ?? locations[0]?.id;
-      if (def) setMovementLocationId(def);
-    }
-  }, [movementLocationId, locations]);
-
-  useEffect(() => {
-    if (showCreateModal) {
-      if (movementProductId) {
-        const prod = products.find((p) => p.id === movementProductId);
-        setMovementProductSearch(prod?.name ?? "");
-      } else {
-        setMovementProductSearch("");
-      }
-      const loc = locations.find((l) => l.id === movementLocationId);
-      setMovementLocationSearch(loc?.name ?? "");
-    }
-  }, [showCreateModal, products, locations, movementProductId, movementLocationId]);
-
   useEffect(() => {
     if (productFilterFocused) {
       filterAnchor.update();
     }
   }, [productFilterFocused, filterAnchor]);
-
-  const createMovement = useMutation({
-    mutationFn: api.createStockMovement,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
-      queryClient.invalidateQueries({ queryKey: ["stock", movementProductId] });
-      setShowCreateModal(false);
-      setEntryQuantity(0);
-      setMovementReason("");
-      setFormMessage(null);
-    },
-    onError: (error: Error) => setFormMessage(error.message),
-  });
-
-  const createInventory = useMutation({
-    mutationFn: api.createInventory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inventories"] });
-      setShowCreateModal(false);
-      setEntryQuantity(0);
-      setFormMessage(null);
-    },
-    onError: (error: Error) => setFormMessage(error.message),
-  });
-
-  const handleCreateMovement = (event: FormEvent) => {
-    event.preventDefault();
-    setFormMessage(null);
-    if (!movementProductId || !movementLocationId) {
-      setFormMessage("Sélectionne un produit et un emplacement.");
-      return;
-    }
-    if (!Number.isFinite(entryQuantity) || (entryMode === "movement" && entryQuantity === 0)) {
-      setFormMessage("Quantité non nulle requise.");
-      return;
-    }
-    if (entryMode === "movement") {
-      const signed =
-        movementType === "IN"
-          ? Math.abs(entryQuantity)
-          : movementType === "OUT"
-            ? -Math.abs(entryQuantity)
-            : entryQuantity;
-      createMovement.mutate({
-        productId: movementProductId,
-        stockLocationId: movementLocationId,
-        quantityDelta: signed,
-        reason: movementReason || movementType,
-        createdAt: new Date().toISOString(),
-      });
-    } else {
-      createInventory.mutate({
-        productId: movementProductId,
-        stockLocationId: movementLocationId,
-        quantity: entryQuantity,
-        createdAt: new Date().toISOString(),
-      });
-    }
-  };
-
 
   const combined = useMemo(() => {
     const rows: Array<
@@ -260,10 +136,7 @@ function Movements() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            setEntryMode("movement");
-            setShowCreateModal(true);
-          }}
+          onClick={() => setShowCreateModal(true)}
           className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
           disabled={products.length === 0 || locations.length === 0}
         >
@@ -426,148 +299,14 @@ function Movements() {
       )}
 
 
-      {showCreateModal
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink-900/40 px-4 backdrop-blur-sm"
-              onClick={() => setShowCreateModal(false)}
-            >
-              <div
-                className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-lg font-semibold text-ink-900">
-                      {entryMode === "movement" ? "Créer un mouvement" : "Inventaire partiel"}
-                    </p>
-                    <p className="text-xs text-ink-500">Mise à jour rapide depuis la liste.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700"
-                  >
-                    Fermer
-                  </button>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEntryMode("movement")}
-                    className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                      entryMode === "movement"
-                        ? "bg-ink-900 text-white shadow-card"
-                        : "bg-ink-100 text-ink-700 hover:bg-ink-200"
-                    }`}
-                  >
-                    Mouvement
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEntryMode("inventory")}
-                    className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                      entryMode === "inventory"
-                        ? "bg-ink-900 text-white shadow-card"
-                        : "bg-ink-100 text-ink-700 hover:bg-ink-200"
-                    }`}
-                  >
-                    Inventaire partiel
-                  </button>
-                </div>
-
-                <form className="mt-4 space-y-3" onSubmit={handleCreateMovement}>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <SearchSelect
-                      label="Produit"
-                      placeholder="Rechercher un produit"
-                      valueId={movementProductId}
-                      search={movementProductSearch}
-                      onSearch={setMovementProductSearch}
-                      options={movementProductOptions}
-                      onSelect={(opt) => {
-                        setMovementProductId(opt.id);
-                        setMovementProductSearch(opt.label);
-                      }}
-                    />
-                    <SearchSelect
-                      label="Emplacement"
-                      placeholder="Rechercher un emplacement"
-                      valueId={movementLocationId}
-                      search={movementLocationSearch}
-                      onSearch={setMovementLocationSearch}
-                      options={movementLocationOptions}
-                      onSelect={(opt) => {
-                        setMovementLocationId(opt.id);
-                        setMovementLocationSearch(opt.label);
-                      }}
-                    />
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="text-sm text-ink-700">
-                      Quantité {entryMode === "movement" ? "(peut être négative)" : ""}
-                      <input
-                        type="number"
-                        value={entryQuantity}
-                        onChange={(e) => setEntryQuantity(Number(e.target.value))}
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                      />
-                    </label>
-                    {entryMode === "movement" ? (
-                      <label className="text-sm text-ink-700">
-                        Nature
-                        <select
-                          value={movementType}
-                          onChange={(e) => setMovementType(e.target.value as typeof movementType)}
-                          className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        >
-                          <option value="IN">Entrée</option>
-                          <option value="OUT">Sortie</option>
-                          <option value="ADJUST">Ajustement</option>
-                        </select>
-                      </label>
-                    ) : (
-                      <div />
-                    )}
-                  </div>
-                  {entryMode === "movement" ? (
-                    <label className="block text-sm text-ink-700">
-                      Motif / référence
-                      <input
-                        type="text"
-                        value={movementReason}
-                        onChange={(e) => setMovementReason(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="Commande client, casse, etc."
-                      />
-                    </label>
-                  ) : null}
-                  <div className="flex items-center justify-between">
-                    {formMessage ? <p className="text-xs text-amber-700">{formMessage}</p> : <span />}
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowCreateModal(false)}
-                        className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                        disabled={createMovement.isPending || products.length === 0 || locations.length === 0}
-                      >
-                        {createMovement.isPending ? "Envoi…" : "Créer"}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      <MovementInventoryModal
+        open={showCreateModal}
+        onOpenChange={(next) => setShowCreateModal(next)}
+        products={products}
+        locations={locations}
+        subtitle="Depuis la liste des mouvements"
+        showTrigger={false}
+      />
       {productFilterFocused && productSearch.trim() && filterAnchor.rect
         ? createPortal(
             <div
@@ -610,82 +349,3 @@ function Movements() {
 }
 
 export default Movements;
-
-function SearchSelect({
-  label,
-  placeholder,
-  valueId,
-  search,
-  onSearch,
-  options,
-  onSelect,
-}: {
-  label: string;
-  placeholder: string;
-  valueId?: number;
-  search: string;
-  onSearch: (v: string) => void;
-  options: Option[];
-  onSelect: (opt: Option) => void;
-}) {
-  const [focused, setFocused] = useState(false);
-  const anchor = useAnchorRect();
-
-  useEffect(() => {
-    if (focused) anchor.update();
-  }, [focused, anchor]);
-
-  return (
-    <label className="text-sm text-ink-700">
-      {label}
-      <div className="relative mt-1">
-        <input
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 100)}
-          ref={anchor.ref}
-          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-          placeholder={placeholder}
-        />
-      </div>
-      {focused && search.trim() && anchor.rect
-        ? createPortal(
-            <div
-              className="z-[4000] max-h-48 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
-              style={{
-                position: "fixed",
-                top: (anchor.rect?.bottom ?? 0) + 4,
-                left: anchor.rect?.left ?? 0,
-                width: anchor.rect?.width ?? "auto",
-              }}
-            >
-              {options.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-ink-500">Aucun résultat</p>
-              ) : (
-                options.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      onSelect(opt);
-                      onSearch(opt.label);
-                      setFocused(false);
-                    }}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-ink-50 ${
-                      valueId === opt.id ? "bg-ink-50" : ""
-                    }`}
-                  >
-                    <span className="font-semibold text-ink-900">{opt.label}</span>
-                    {opt.hint ? <span className="text-xs text-ink-500">{opt.hint}</span> : null}
-                  </button>
-                ))
-              )}
-            </div>,
-            document.body,
-          )
-        : null}
-    </label>
-  );
-}
