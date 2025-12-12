@@ -1,5 +1,4 @@
 import { FormEvent, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
@@ -7,6 +6,8 @@ import { useToast } from "../components/ToastProvider";
 import { useFamilies } from "../hooks/useFamilies";
 import { usePackagings } from "../hooks/usePackagings";
 import SearchSelect from "../components/SearchSelect";
+import ConfirmModal from "../components/ConfirmModal";
+import PageHeader from "../components/ui/PageHeader";
 
 function Settings() {
   const { settings, update, reset, defaultColor } = useSettings();
@@ -200,6 +201,7 @@ function Settings() {
 
   return (
     <div className="space-y-4">
+      <PageHeader title="Réglages" subtitle="Intégrations, catalogues et référentiels." />
       <div className="glass-panel p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink-900">Extranet Husse</h3>
@@ -560,46 +562,21 @@ function Settings() {
           ))}
         </div>
       </div>
-      {confirmImportOpen
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[4000] flex items-center justify-center bg-ink-900/40 px-4 backdrop-blur-sm"
-              onClick={() => (importHusseProducts.isPending ? null : setConfirmImportOpen(false))}
-            >
-              <div
-                className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h4 className="text-lg font-semibold text-ink-900">Importer le catalogue Husse ?</h4>
-                <p className="mt-2 text-sm text-ink-600">
-                  Le core va se connecter à l’extranet Husse avec les identifiants renseignés et rafraîchir les produits (familles, sous-familles, prix).
-                </p>
-                <div className="mt-4 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    className="rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800"
-                    onClick={() => setConfirmImportOpen(false)}
-                    disabled={importHusseProducts.isPending}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                    disabled={importHusseProducts.isPending}
-                    onClick={() => {
-                      setConfirmImportOpen(false);
-                      importHusseProducts.mutate();
-                    }}
-                  >
-                    {importHusseProducts.isPending ? "Import…" : "Confirmer l'import"}
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      {confirmImportOpen ? (
+        <ConfirmModal
+          title="Importer le catalogue Husse ?"
+          description="Le core va se connecter à l’extranet Husse avec les identifiants renseignés et rafraîchir les produits (familles, sous-familles, prix)."
+          onClose={() => setConfirmImportOpen(false)}
+          onConfirm={() => {
+            setConfirmImportOpen(false);
+            importHusseProducts.mutate();
+          }}
+          canClose={!importHusseProducts.isPending}
+          cancelDisabled={importHusseProducts.isPending}
+          confirmDisabled={importHusseProducts.isPending}
+          confirmLabel={importHusseProducts.isPending ? "Import…" : "Confirmer l'import"}
+        />
+      ) : null}
     </div>
   );
 }

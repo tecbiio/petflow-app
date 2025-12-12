@@ -1,4 +1,4 @@
-import { NavLink, useLocation, Link, Outlet } from "react-router-dom";
+import { NavLink, Link, Outlet } from "react-router-dom";
 import logo from "../assets/petflow-logo.svg";
 import { useAuth } from "./AuthProvider";
 
@@ -12,7 +12,6 @@ const links = [
 ];
 
 function Layout() {
-  const location = useLocation();
   const { user, logout } = useAuth();
 
   return (
@@ -71,28 +70,11 @@ function Layout() {
         </header>
 
         <main className="relative mx-auto max-w-6xl px-6 py-8">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="mt-1 text-2xl font-semibold text-ink-900">
-                {pageTitle(location.pathname)}
-              </h1>
-            </div>
-          </div>
           <Outlet />
         </main>
       </div>
     </div>
   );
-}
-
-function pageTitle(pathname: string) {
-  if (pathname.startsWith("/products/")) return "Détail produit";
-  if (pathname.startsWith("/products")) return "Catalogue produits";
-  if (pathname.startsWith("/locations")) return "Emplacements de stock";
-  if (pathname.startsWith("/movements")) return "Mouvements";
-  if (pathname.startsWith("/documents")) return "Documents";
-  if (pathname.startsWith("/settings")) return "Réglages";
-  return "Tableau de bord";
 }
 
 export default Layout;

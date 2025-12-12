@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAnchorRect } from "../hooks/useAnchorRect";
 
 export type SelectOption = { id: number | string; label: string; hint?: string };
 
@@ -14,29 +15,6 @@ type Props = {
   allowClear?: boolean;
 };
 
-function useAnchorRect() {
-  const ref = useRef<HTMLInputElement | null>(null);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-
-  const update = () => {
-    if (ref.current) {
-      setRect(ref.current.getBoundingClientRect());
-    }
-  };
-
-  useEffect(() => {
-    const handler = () => update();
-    window.addEventListener("resize", handler);
-    window.addEventListener("scroll", handler, true);
-    return () => {
-      window.removeEventListener("resize", handler);
-      window.removeEventListener("scroll", handler, true);
-    };
-  }, []);
-
-  return { ref, rect, update };
-}
-
 export function SearchSelect({
   label,
   placeholder,
@@ -48,7 +26,7 @@ export function SearchSelect({
   allowClear = true,
 }: Props) {
   const [focused, setFocused] = useState(false);
-  const anchor = useAnchorRect();
+  const anchor = useAnchorRect<HTMLInputElement>();
 
   useEffect(() => {
     if (focused) anchor.update();
@@ -81,7 +59,7 @@ export function SearchSelect({
       {focused && search.trim() && anchor.rect
         ? createPortal(
             <div
-              className="z-[4000] max-h-48 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
+              className="z-[5500] max-h-48 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
               style={{
                 position: "fixed",
                 top: (anchor.rect?.bottom ?? 0) + 4,

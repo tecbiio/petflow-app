@@ -336,7 +336,7 @@ function ProductDetail() {
                   />
                 </div>
               ) : (
-                <h2 className="text-2xl font-semibold text-ink-900">{product.name}</h2>
+                <h1 className="text-2xl font-semibold text-ink-900">{product.name}</h1>
               )}
               {editMode ? (
                 <textarea

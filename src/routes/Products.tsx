@@ -1,5 +1,4 @@
 import { FormEvent, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -10,6 +9,9 @@ import { api } from "../api/client";
 import { Inventory } from "../types";
 import { validateProductPayload } from "../lib/constraints";
 import SearchSelect from "../components/SearchSelect";
+import Modal from "../components/ui/Modal";
+import { useToast } from "../components/ToastProvider";
+import PageHeader from "../components/ui/PageHeader";
 
 function Products() {
   const queryClient = useQueryClient();
@@ -30,6 +32,7 @@ function Products() {
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
+  const toast = useToast();
   const { data: products = [], isLoading } = useProducts({ active: activeOnly ? true : undefined });
   const { data: familiesData = [] } = useFamilies();
   const { data: packagings = [] } = usePackagings();
@@ -112,7 +115,7 @@ function Products() {
   const createProduct = useMutation({
     mutationFn: api.createProduct,
     onSuccess: (created) => {
-      setFormMessage("Produit créé via PUT /products");
+      toast("Produit créé", "success");
       setNewName("");
       setNewSku("");
       setNewPriceVdi("");
@@ -129,6 +132,7 @@ function Products() {
     },
     onError: (error: Error) => {
       setFormMessage(error.message);
+      toast(error.message, "error");
     },
   });
 
@@ -136,9 +140,9 @@ function Products() {
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => api.updateProduct(id, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      setFormMessage("Statut produit mis à jour via PATCH /products/:id");
+      toast("Statut produit mis à jour", "success");
     },
-    onError: (error: Error) => setFormMessage(error.message),
+    onError: (error: Error) => toast(error.message, "error"),
   });
 
   const handleCreate = (event: FormEvent) => {
@@ -174,6 +178,7 @@ function Products() {
 
     if (errors.length > 0) {
       setFormMessage(errors.join(" · "));
+      toast("Corrige les champs requis.", "warning");
       return;
     }
 
@@ -199,22 +204,22 @@ function Products() {
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
-        <div>
-          <p className="text-lg font-semibold text-ink-900">Catalogue produits</p>
-          <p className="text-xs text-ink-500">Consulte, filtre ou ajoute de nouveaux produits.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setFormMessage(null);
-            setShowCreateModal(true);
-          }}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-        >
-          Nouveau produit
-        </button>
-      </div>
+      <PageHeader
+        title="Catalogue produits"
+        subtitle="Consulte, filtre ou ajoute de nouveaux produits."
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setFormMessage(null);
+              setShowCreateModal(true);
+            }}
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+          >
+            Nouveau produit
+          </button>
+        }
+      />
 
       <div className="glass-panel space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -315,29 +320,14 @@ function Products() {
         })}
       </div>
 
-      {showCreateModal
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink-900/40 px-4 backdrop-blur-sm"
-              onClick={() => setShowCreateModal(false)}
-            >
-              <div
-                className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-ink-900">Créer un produit</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700"
-                  >
-                    Fermer
-                  </button>
-                </div>
-                <form className="mt-4 space-y-3" onSubmit={handleCreate}>
+      <Modal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        title="Créer un produit"
+        size="lg"
+        canClose={!createProduct.isPending}
+      >
+        <form className="space-y-3" onSubmit={handleCreate}>
                   <label className="block text-sm text-ink-700">
                     Nom
                     <input
@@ -461,20 +451,26 @@ function Products() {
                   </label>
                   <div className="flex items-center justify-between">
                     {formMessage ? <p className="text-xs text-ink-600">{formMessage}</p> : <span />}
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                      disabled={createProduct.isPending}
-                    >
-                      {createProduct.isPending ? "Création…" : "Créer"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateModal(false)}
+                        className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={createProduct.isPending}
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={createProduct.isPending}
+                      >
+                        {createProduct.isPending ? "Création…" : "Créer"}
+                      </button>
+                    </div>
                   </div>
-                </form>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+        </form>
+      </Modal>
     </div>
   );
 }

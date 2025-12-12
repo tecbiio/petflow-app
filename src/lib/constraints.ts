@@ -53,7 +53,9 @@ export function validateProductPayload(raw: ProductPayload, options: ValidationO
     requireField("Prix");
   }
 
-  const numeric = (value: unknown, label: string, key: keyof ProductPayload) => {
+  type NumericProductKey = "priceVdiHt" | "priceDistributorHt" | "priceSaleHt" | "purchasePrice" | "tvaRate";
+
+  const numeric = (value: unknown, label: string, key: NumericProductKey) => {
     if (value === undefined) {
       if (!partial) errors.push(`${label} requis`);
       return;

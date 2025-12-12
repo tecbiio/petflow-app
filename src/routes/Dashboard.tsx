@@ -6,6 +6,7 @@ import StatCard from "../components/StatCard";
 import StockBadge from "../components/StockBadge";
 import StockValuationChart from "../components/StockValuationChart";
 import SearchSelect from "../components/SearchSelect";
+import PageHeader from "../components/ui/PageHeader";
 import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { useStockValuations } from "../hooks/useStockValuations";
@@ -111,27 +112,21 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-4 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-brand-100">
-            <img src={logo} alt="PetFlow" className="h-full w-full object-contain" />
-          </div>
-          <div>
-            <p className="text-sm uppercase tracking-wide text-ink-500">Tableau principal</p>
-            <p className="text-lg font-semibold text-ink-900">Pilotage des flux en un coup de patte</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+      <PageHeader
+        kicker="Tableau principal"
+        title="Pilotage des flux en un coup de patte"
+        icon={<img src={logo} alt="PetFlow" className="h-full w-full object-contain" />}
+        actions={
           <button
             type="button"
             onClick={() => setShowQuickModal(true)}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
             disabled={products.length === 0 || locations.length === 0}
           >
             Nouveau mouvement / inventaire
           </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <StatCard

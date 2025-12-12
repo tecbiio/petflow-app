@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../api/client";
+import PageHeader from "../components/ui/PageHeader";
 
 const DEFAULT_BASE_URL = "https://order.husse.fr/";
 
@@ -58,6 +59,7 @@ function HusseSync() {
 
   return (
     <div className="space-y-4">
+      <PageHeader title="Husse" subtitle="Session et récupération de pages (debug)." />
       <div className="glass-panel p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-ink-900">Session Husse</h2>

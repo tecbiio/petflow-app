@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
+import PageHeader from "../components/ui/PageHeader";
 
 const maskKey = (value?: string) => {
   if (!value) return "non renseignée";
@@ -91,16 +92,12 @@ function Sandbox() {
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-ink-500">Axonaut</p>
-            <h2 className="text-lg font-semibold text-ink-900">Bac à sable</h2>
-            <p className="text-sm text-ink-600">Vérifie la config envoyée au core et teste un lookup produit.</p>
-          </div>
-          <span className="pill bg-ink-100 text-ink-700">Debug</span>
-        </div>
-      </div>
+      <PageHeader
+        kicker="Axonaut"
+        title="Bac à sable"
+        subtitle="Vérifie la config envoyée au core et teste un lookup produit."
+        actions={<span className="pill bg-ink-100 text-ink-700">Debug</span>}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="glass-panel p-4 space-y-3">

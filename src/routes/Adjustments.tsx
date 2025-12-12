@@ -1,6 +1,7 @@
 import UploadDropzone from "../components/UploadDropzone";
 import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
+import PageHeader from "../components/ui/PageHeader";
 
 function Adjustments() {
   const { data: products = [], isLoading: loadingProducts } = useProducts();
@@ -9,6 +10,10 @@ function Adjustments() {
 
   return (
     <div className="space-y-4">
+      <PageHeader
+        title="Documents"
+        subtitle="Import de PDF (facture/avoir/BL) pour générer des mouvements de stock."
+      />
       <div className="glass-panel p-4">
         <h2 className="text-lg font-semibold text-ink-900">Import de documents</h2>
         {defaultLocationId ? (

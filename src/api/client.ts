@@ -1,8 +1,10 @@
 import {
   DocumentType,
+  Family,
   Inventory,
   ParsedDocumentLine,
   Product,
+  SubFamily,
   StockLocation,
   StockMovement,
   StockSnapshot,
@@ -417,6 +419,7 @@ export const api = {
     stockLocationId?: number;
     sourceDocumentId?: string;
     movementSign?: "IN" | "OUT";
+    createdAt?: string;
     lines: ParsedDocumentLine[];
   }): Promise<{
     created: number;

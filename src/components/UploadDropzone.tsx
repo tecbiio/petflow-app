@@ -3,7 +3,6 @@ import { useMutation } from "@tanstack/react-query";
 import ConfirmModal from "./ConfirmModal";
 import { api } from "../api/client";
 import { DocumentType, ParsedDocumentLine, MovementSign } from "../types";
-import { useEffect } from "react";
 
 type Props = {
   stockLocationId: number;
@@ -60,15 +59,6 @@ function UploadDropzone({ stockLocationId }: Props) {
     },
     onError: (error: Error) => setMessage(error.message),
   });
-
-  useEffect(() => {
-    if (preview) {
-      document.body.classList.add("modal-open");
-    } else {
-      document.body.classList.remove("modal-open");
-    }
-    return () => document.body.classList.remove("modal-open");
-  }, [preview]);
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -186,8 +176,12 @@ function UploadDropzone({ stockLocationId }: Props) {
         <ConfirmModal
           title="Vérification des lignes détectées"
           description="Confirmez pour créer les mouvements de stock."
+          size="xl"
           onClose={() => setPreview(null)}
           onConfirm={() => ingestMutation.mutate()}
+          canClose={!ingestMutation.isPending}
+          cancelDisabled={ingestMutation.isPending}
+          confirmDisabled={ingestMutation.isPending}
           confirmLabel={ingestMutation.isPending ? "Création…" : "Valider les mouvements"}
         >
           <div className="overflow-auto">

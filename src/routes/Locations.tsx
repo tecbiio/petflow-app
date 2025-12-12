@@ -1,11 +1,14 @@
 import { FormEvent, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { api } from "../api/client";
+import Modal from "../components/ui/Modal";
+import { useToast } from "../components/ToastProvider";
+import PageHeader from "../components/ui/PageHeader";
 
 function Locations() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [activeOnly, setActiveOnly] = useState(true);
   const { data: locations = [] } = useStockLocations({ active: activeOnly ? true : undefined });
   const [search, setSearch] = useState("");
@@ -34,9 +37,9 @@ function Locations() {
       api.updateStockLocation(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stockLocations"] });
-      setMessage("Mise à jour via PATCH /stock-locations/:id");
+      toast("Emplacement mis à jour", "success");
     },
-    onError: (error: Error) => setMessage(error.message),
+    onError: (error: Error) => toast(error.message, "error"),
   });
 
   const handleCreate = (event: FormEvent) => {
@@ -63,22 +66,22 @@ function Locations() {
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
-        <div>
-          <p className="text-lg font-semibold text-ink-900">Emplacements</p>
-          <p className="text-xs text-ink-500">Gestion des zones de stockage et emplacements par défaut.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setMessage(null);
-            setShowCreateModal(true);
-          }}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-        >
-          Nouvel emplacement
-        </button>
-      </div>
+      <PageHeader
+        title="Emplacements"
+        subtitle="Gestion des zones de stockage et emplacements par défaut."
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setMessage(null);
+              setShowCreateModal(true);
+            }}
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+          >
+            Nouvel emplacement
+          </button>
+        }
+      />
 
       <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -141,95 +144,77 @@ function Locations() {
         ))}
       </div>
 
-      {showCreateModal
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink-900/40 px-4 backdrop-blur-sm"
-              onClick={() => setShowCreateModal(false)}
-            >
-              <div
-                className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
+      <Modal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        title="Nouvel emplacement"
+        description="Définis un nom, un code et son statut."
+        size="md"
+        canClose={!createLocation.isPending}
+      >
+        <form className="space-y-3" onSubmit={handleCreate}>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-ink-700">
+              Nom
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                placeholder="Entrepôt Paris"
+              />
+            </label>
+            <label className="text-sm text-ink-700">
+              Code
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                placeholder="PAR"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-ink-800">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300"
+              />
+              Activer
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={isDefault}
+                onChange={(e) => setIsDefault(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300"
+              />
+              Définir par défaut
+            </label>
+          </div>
+          <div className="flex items-center justify-between">
+            {message ? <p className="text-xs text-ink-600">{message}</p> : <span />}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={createLocation.isPending}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-ink-900">Nouvel emplacement</h3>
-                    <p className="text-xs text-ink-500">Définis un nom, un code et son statut.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700"
-                  >
-                    Fermer
-                  </button>
-                </div>
-                <form className="mt-4 space-y-3" onSubmit={handleCreate}>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="text-sm text-ink-700">
-                      Nom
-                      <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="Entrepôt Paris"
-                      />
-                    </label>
-                    <label className="text-sm text-ink-700">
-                      Code
-                      <input
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="PAR"
-                      />
-                    </label>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-ink-800">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={isActive}
-                        onChange={(e) => setIsActive(e.target.checked)}
-                        className="h-4 w-4 rounded border-ink-300"
-                      />
-                      Activer
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={isDefault}
-                        onChange={(e) => setIsDefault(e.target.checked)}
-                        className="h-4 w-4 rounded border-ink-300"
-                      />
-                      Définir par défaut
-                    </label>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    {message ? <p className="text-xs text-ink-600">{message}</p> : <span />}
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowCreateModal(false)}
-                        className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                        disabled={createLocation.isPending}
-                      >
-                        {createLocation.isPending ? "Création…" : "Créer"}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={createLocation.isPending}
+              >
+                {createLocation.isPending ? "Création…" : "Créer"}
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

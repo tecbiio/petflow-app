@@ -1,36 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useProducts } from "../hooks/useProducts";
 import { useStockLocations } from "../hooks/useStockLocations";
+import { useAnchorRect } from "../hooks/useAnchorRect";
 import { Inventory, StockMovement } from "../types";
 import MovementInventoryModal from "../components/MovementInventoryModal";
+import PageHeader from "../components/ui/PageHeader";
 import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel } from "../lib/stockReasons";
 import { api } from "../api/client";
 
 type TypeFilter = "movement" | "inventory";
-
-function useAnchorRect() {
-  const ref = useRef<HTMLInputElement | null>(null);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-
-  const update = () => {
-    if (ref.current) {
-      setRect(ref.current.getBoundingClientRect());
-    }
-  };
-
-  useEffect(() => {
-    const handler = () => update();
-    window.addEventListener("resize", handler);
-    window.addEventListener("scroll", handler, true);
-    return () => {
-      window.removeEventListener("resize", handler);
-      window.removeEventListener("scroll", handler, true);
-    };
-  }, []);
-
-  return { ref, rect, update };
-}
 
 function Movements() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("movement");
@@ -39,7 +19,7 @@ function Movements() {
   const [productFilterFocused, setProductFilterFocused] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [movementReasonsFilter, setMovementReasonsFilter] = useState<StockMovementReason[]>([]);
-  const filterAnchor = useAnchorRect();
+  const filterAnchor = useAnchorRect<HTMLInputElement>();
 
   const { data: products = [] } = useProducts();
   const { data: locations = [] } = useStockLocations();
@@ -129,20 +109,20 @@ function Movements() {
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
-        <div>
-          <p className="text-lg font-semibold text-ink-900">Mouvements & inventaires</p>
-          <p className="text-xs text-ink-500">Journal des variations de stock avec filtres.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={products.length === 0 || locations.length === 0}
-        >
-          Nouveau mouvement / inventaire
-        </button>
-      </div>
+      <PageHeader
+        title="Mouvements & inventaires"
+        subtitle="Journal des variations de stock avec filtres."
+        actions={
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={products.length === 0 || locations.length === 0}
+          >
+            Nouveau mouvement / inventaire
+          </button>
+        }
+      />
 
       <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex flex-wrap items-center gap-3">

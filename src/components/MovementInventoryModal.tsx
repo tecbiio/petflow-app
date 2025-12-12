@@ -1,10 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { Inventory, Product, StockLocation, StockMovement } from "../types";
 import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel } from "../lib/stockReasons";
 import SearchSelect, { SelectOption } from "./SearchSelect";
+import Modal from "./ui/Modal";
 
 const todayIsoDate = () => new Date().toISOString().slice(0, 10);
 
@@ -210,35 +210,18 @@ function MovementInventoryModal({
 
   if (!isOpen && !triggerButton) return null;
 
-  const modalContent = !isOpen
-    ? null
-    : createPortal(
-        <div
-          className="fixed inset-0 z-[3000] flex items-center justify-center bg-ink-900/40 px-4 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-semibold text-ink-900">
-                  {entryMode === "movement" ? "Créer un mouvement" : "Inventaire partiel"}
-                </p>
-                <p className="text-xs text-ink-500">{subtitle ?? "Saisie rapide"}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-100 text-sm font-semibold text-ink-700"
-                aria-label="Fermer"
-              >
-                ×
-              </button>
-            </div>
+  const isBusy = createMovement.isPending || createInventory.isPending;
 
-        {allowedModes.length > 1 ? (
+  const modalContent = (
+    <Modal
+      open={isOpen}
+      onOpenChange={setOpen}
+      title={entryMode === "movement" ? "Créer un mouvement" : "Inventaire partiel"}
+      description={subtitle ?? "Saisie rapide"}
+      size="lg"
+      canClose={!isBusy}
+    >
+      {allowedModes.length > 1 ? (
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -392,24 +375,23 @@ function MovementInventoryModal({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700"
+                className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy}
               >
                 Annuler
               </button>
               <button
                 type="submit"
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
-                disabled={createMovement.isPending || createInventory.isPending || products.length === 0 || locations.length === 0}
+                disabled={isBusy || products.length === 0 || locations.length === 0}
               >
-                {createMovement.isPending || createInventory.isPending ? "Envoi…" : "Créer"}
+                {isBusy ? "Envoi…" : "Créer"}
               </button>
             </div>
           </div>
         </form>
-      </div>
-    </div>,
-        document.body,
-      );
+    </Modal>
+  );
 
   return (
     <>
