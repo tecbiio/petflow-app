@@ -63,6 +63,11 @@ function ProductDetail() {
   const { data: packagings = [] } = usePackagings();
   const [showMovementModal, setShowMovementModal] = useState(false);
   const hasInventory = inventories.length > 0;
+  const computeTtcValue = (ht: number, rate: number) => {
+    if (!Number.isFinite(ht) || !Number.isFinite(rate) || ht === 0) return 0;
+    return ht * (1 + rate / 100);
+  };
+  const formatHtValue = (value: number) => (Number.isFinite(value) && value !== 0 ? `${value.toFixed(2)} € HT` : "—");
 
   const firstMovementDate = useMemo(() => {
     if (variations.length === 0) return null;
@@ -222,19 +227,25 @@ function ProductDetail() {
     event.preventDefault();
     setFormError(null);
     setMessage(null);
-    const parsedPrice = Number(editFields.price);
     const parsedPriceVdiHt = Number(editFields.priceVdiHt);
     const parsedPriceDistributorHt = Number(editFields.priceDistributorHt);
     const parsedPriceSaleHt = Number(editFields.priceSaleHt || editFields.price);
     const parsedPurchasePrice = Number(editFields.purchasePrice);
     const parsedTvaRate = Number(editFields.tvaRate);
+    const fallbackPrice = Number.isFinite(parsedPriceSaleHt)
+      ? parsedPriceSaleHt
+      : Number.isFinite(parsedPriceVdiHt)
+        ? parsedPriceVdiHt
+        : Number.isFinite(parsedPriceDistributorHt)
+          ? parsedPriceDistributorHt
+          : Number.NaN;
     const parsedFamilyId = editFields.familyId ? Number(editFields.familyId) : null;
     const parsedSubFamilyId = editFields.subFamilyId ? Number(editFields.subFamilyId) : null;
     const { payload, errors } = validateProductPayload(
       {
         name: editFields.name,
         sku: editFields.sku,
-        price: parsedPrice,
+        price: fallbackPrice,
         priceVdiHt: parsedPriceVdiHt,
         priceDistributorHt: parsedPriceDistributorHt,
         priceSaleHt: parsedPriceSaleHt,
@@ -278,14 +289,33 @@ function ProductDetail() {
   }
 
   const stockQuantity = stock?.stock ?? 0;
+  const displayTvaRate = editMode ? Number(editFields.tvaRate) : Number(product.tvaRate ?? 0);
+  const displayPriceVdiHt = editMode ? Number(editFields.priceVdiHt) : Number(product.priceVdiHt ?? 0);
+  const displayPriceDistributorHt = editMode
+    ? Number(editFields.priceDistributorHt)
+    : Number(product.priceDistributorHt ?? 0);
+  const displayPriceSaleHt = editMode ? Number(editFields.priceSaleHt) : Number(product.priceSaleHt ?? 0);
+  const purchasePriceValue = editMode ? Number(editFields.purchasePrice) : Number(product.purchasePrice ?? 0);
+  const priceVdiTtc = computeTtcValue(displayPriceVdiHt, displayTvaRate);
+  const priceDistributorTtc = computeTtcValue(displayPriceDistributorHt, displayTvaRate);
+  const priceSaleTtc = computeTtcValue(displayPriceSaleHt, displayTvaRate);
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel p-5">
-        <form className="space-y-2" onSubmit={handleSaveProduct}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex-1 min-w-[260px]">
-              <p className="text-xs uppercase tracking-wide text-ink-500">{product.sku}</p>
+      <div className="glass-panel p-5 space-y-4">
+        <form className="space-y-4" onSubmit={handleSaveProduct}>
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="flex-1 min-w-[260px] space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-wide text-ink-500">{product.sku}</span>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    product.isActive ?? true ? "bg-emerald-50 text-emerald-700" : "bg-ink-100 text-ink-700"
+                  }`}
+                >
+                  {product.isActive ?? true ? "Actif" : "Archivé"}
+                </span>
+              </div>
               {editMode ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   <input
@@ -297,36 +327,115 @@ function ProductDetail() {
                   />
                   <input
                     value={editFields.sku}
-                    onChange={(e) => setEditFields((prev) => ({ ...prev, sku: e.target.value }))}
-                    className="rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    readOnly
+                    disabled
+                    className="rounded-lg border border-ink-100 bg-ink-50 px-3 py-2 text-sm text-ink-500"
                     placeholder="SKU"
+                    title="Le SKU n'est pas modifiable"
                     required
                   />
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-semibold text-ink-900">{product.name}</h2>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      product.isActive ?? true ? "bg-emerald-50 text-emerald-700" : "bg-ink-100 text-ink-700"
-                    }`}
-                  >
-                    {product.isActive ?? true ? "Actif" : "Archivé"}
-                  </span>
-                </div>
+                <h2 className="text-2xl font-semibold text-ink-900">{product.name}</h2>
               )}
               {editMode ? (
                 <textarea
                   value={editFields.description}
                   onChange={(e) => setEditFields((prev) => ({ ...prev, description: e.target.value }))}
-                  className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
                   rows={2}
                   placeholder="Description"
                 />
               ) : (
-                <p className="text-sm text-ink-600">{product.description}</p>
+                <p className="text-sm text-ink-600">{product.description || "Aucune description pour le moment."}</p>
               )}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+            </div>
+            <div className="min-w-[240px] space-y-2 text-right">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <span className="text-xs text-ink-500">Mode</span>
+                <button
+                  type="button"
+                  onClick={() => setEditMode(false)}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                    !editMode ? "bg-ink-900 text-white shadow-card" : "bg-ink-100 text-ink-700"
+                  }`}
+                >
+                  Consultation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (product) {
+                      setEditFields({
+                        name: product.name ?? "",
+                        sku: product.sku ?? "",
+                        price:
+                          product.priceSaleHt !== undefined
+                            ? String(product.priceSaleHt)
+                            : product.price !== undefined
+                              ? String(product.price)
+                              : "",
+                        priceVdiHt: product.priceVdiHt !== undefined ? String(product.priceVdiHt) : "",
+                        priceDistributorHt:
+                          product.priceDistributorHt !== undefined ? String(product.priceDistributorHt) : "",
+                        priceSaleHt: product.priceSaleHt !== undefined ? String(product.priceSaleHt) : "",
+                        purchasePrice: product.purchasePrice !== undefined ? String(product.purchasePrice) : "",
+                        tvaRate: product.tvaRate !== undefined ? String(product.tvaRate) : "",
+                        packagingId: product.packagingId ?? null,
+                        description: product.description ?? "",
+                        isActive: product.isActive ?? true,
+                        familyId: product.family?.id ?? null,
+                        subFamilyId: product.subFamily?.id ?? null,
+                      });
+                      setPackagingSearch(product.packaging?.name ?? "");
+                    }
+                    setEditMode(true);
+                  }}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                    editMode ? "bg-ink-900 text-white shadow-card" : "bg-ink-100 text-ink-700"
+                  }`}
+                >
+                  Modification
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <StockBadge quantity={stock?.stock} />
+                {!hasInventory ? <InventoryStatusBadge /> : null}
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !(product.isActive ?? true);
+                    setEditFields((prev) => ({ ...prev, isActive: next }));
+                    saveProduct.mutate({ isActive: next });
+                  }}
+                  className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
+                  title={product.isActive ?? true ? "Archiver le produit" : "Réactiver le produit"}
+                >
+                  {product.isActive ?? true ? "Archiver" : "Réactiver"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMovementModal(true)}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
+                  disabled={locations.length === 0}
+                >
+                  Ajuster / inventaire
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wide text-ink-500">Catégorisation</p>
+                {!editMode && (product.family || product.subFamily) ? (
+                  <span className="text-xs text-ink-400">Non modifiable en consultation</span>
+                ) : null}
+              </div>
+              <div className="mt-2">
                 {editMode ? (
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -397,70 +506,30 @@ function ProductDetail() {
                     ) : null}
                   </div>
                 ) : (
-                  <>
+                  <div className="flex flex-wrap items-center gap-2">
                     {product.family ? (
                       <span className="pill bg-ink-100 text-ink-800">Famille : {product.family.name}</span>
-                    ) : null}
+                    ) : (
+                      <span className="pill bg-ink-50 text-ink-700">Famille : —</span>
+                    )}
                     {product.subFamily ? (
                       <span className="pill bg-ink-50 text-ink-800">Sous-famille : {product.subFamily.name}</span>
-                    ) : null}
-                  </>
+                    ) : (
+                      <span className="pill bg-ink-50 text-ink-700">Sous-famille : —</span>
+                    )}
+                  </div>
                 )}
               </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                <label className="text-xs font-semibold text-ink-600">
-                  Tarif VDI HT
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editFields.priceVdiHt}
-                      onChange={(e) => setEditFields((prev) => ({ ...prev, priceVdiHt: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
-                      required
-                    />
-                  ) : (
-                    <div className="text-sm text-ink-900">
-                      {Number(product.priceVdiHt ?? 0).toFixed(2)} €
-                    </div>
-                  )}
-                </label>
-                <label className="text-xs font-semibold text-ink-600">
-                  Tarif Distributeur HT
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editFields.priceDistributorHt}
-                      onChange={(e) => setEditFields((prev) => ({ ...prev, priceDistributorHt: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
-                      required
-                    />
-                  ) : (
-                    <div className="text-sm text-ink-900">
-                      {Number(product.priceDistributorHt ?? 0).toFixed(2)} €
-                    </div>
-                  )}
-                </label>
-                <label className="text-xs font-semibold text-ink-600">
-                  Prix de vente HT
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editFields.priceSaleHt}
-                      onChange={(e) => setEditFields((prev) => ({ ...prev, priceSaleHt: e.target.value, price: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
-                      required
-                    />
-                  ) : (
-                    <div className="text-sm text-ink-900">{Number(product.priceSaleHt ?? 0).toFixed(2)} €</div>
-                  )}
-                </label>
+            </div>
+
+            <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wide text-ink-500">Logistique & TVA</p>
+                <span className="text-xs text-ink-400">HT + rappel TTC</span>
               </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-ink-600">
-                  Prix d'achat
+                  Prix d'achat HT
                   {editMode ? (
                     <input
                       type="number"
@@ -471,7 +540,7 @@ function ProductDetail() {
                       required
                     />
                   ) : (
-                    <div className="text-sm text-ink-900">{Number(product.purchasePrice ?? 0).toFixed(2)} €</div>
+                    <div className="text-sm text-ink-900">{formatHtValue(purchasePriceValue)}</div>
                   )}
                 </label>
                 <label className="text-xs font-semibold text-ink-600">
@@ -486,114 +555,115 @@ function ProductDetail() {
                       required
                     />
                   ) : (
-                    <div className="text-sm text-ink-900">{Number(product.tvaRate ?? 0).toFixed(2)} %</div>
-                  )}
-                </label>
-                <label className="text-xs font-semibold text-ink-600">
-                  Conditionnement
-                  {editMode ? (
-                    <div className="mt-1">
-                      <SearchSelect
-                        placeholder="Conditionnement"
-                        valueId={editFields.packagingId ?? undefined}
-                        search={packagingSearch}
-                        onSearch={setPackagingSearch}
-                        options={packagingOptions.filter((opt) =>
-                          opt.label.toLowerCase().includes(packagingSearch.toLowerCase()),
-                        )}
-                        onSelect={(opt) => {
-                          setEditFields((prev) => ({ ...prev, packagingId: opt ? Number(opt.id) : null }));
-                          setPackagingSearch(opt?.label ?? "");
-                        }}
-                      />
+                    <div className="text-sm text-ink-900">
+                      {Number.isFinite(displayTvaRate) ? `${displayTvaRate.toFixed(2)} %` : "—"}
                     </div>
-                  ) : (
-                    <div className="text-sm text-ink-900">{product.packaging?.name ?? "—"}</div>
                   )}
                 </label>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <StockBadge quantity={stock?.stock} />
-              {!hasInventory ? <InventoryStatusBadge /> : null}
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !(product.isActive ?? true);
-                  setEditFields((prev) => ({ ...prev, isActive: next }));
-                  saveProduct.mutate({ isActive: next });
-                }}
-                className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
-                title={product.isActive ?? true ? "Archiver le produit" : "Réactiver le produit"}
-              >
-                {product.isActive ?? true ? "Archiver" : "Réactiver"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowMovementModal(true)}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
-                disabled={locations.length === 0}
-              >
-                Ajuster / inventaire
-              </button>
+              <label className="text-xs font-semibold text-ink-600">
+                Conditionnement
+                {editMode ? (
+                  <div className="mt-1">
+                    <SearchSelect
+                      placeholder="Conditionnement"
+                      valueId={editFields.packagingId ?? undefined}
+                      search={packagingSearch}
+                      onSearch={setPackagingSearch}
+                      options={packagingOptions.filter((opt) =>
+                        opt.label.toLowerCase().includes(packagingSearch.toLowerCase()),
+                      )}
+                      onSelect={(opt) => {
+                        setEditFields((prev) => ({ ...prev, packagingId: opt ? Number(opt.id) : null }));
+                        setPackagingSearch(opt?.label ?? "");
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-1 text-sm text-ink-900">{product.packaging?.name ?? "—"}</div>
+                )}
+              </label>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-ink-500">Mode</span>
-            <button
-              type="button"
-              onClick={() => setEditMode(false)}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                !editMode ? "bg-ink-900 text-white shadow-card" : "bg-ink-100 text-ink-700"
-              }`}
-            >
-              Consultation
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (product) {
-                  setEditFields({
-                    name: product.name ?? "",
-                    sku: product.sku ?? "",
-                    price:
-                      product.priceSaleHt !== undefined
-                        ? String(product.priceSaleHt)
-                        : product.price !== undefined
-                          ? String(product.price)
-                          : "",
-                    priceVdiHt: product.priceVdiHt !== undefined ? String(product.priceVdiHt) : "",
-                    priceDistributorHt:
-                      product.priceDistributorHt !== undefined ? String(product.priceDistributorHt) : "",
-                    priceSaleHt: product.priceSaleHt !== undefined ? String(product.priceSaleHt) : "",
-                    purchasePrice: product.purchasePrice !== undefined ? String(product.purchasePrice) : "",
-                    tvaRate: product.tvaRate !== undefined ? String(product.tvaRate) : "",
-                    packagingId: product.packagingId ?? null,
-                    description: product.description ?? "",
-                    isActive: product.isActive ?? true,
-                    familyId: product.family?.id ?? null,
-                    subFamilyId: product.subFamily?.id ?? null,
-                  });
-                  setPackagingSearch(product.packaging?.name ?? "");
-                }
-                setEditMode(true);
-              }}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                editMode ? "bg-ink-900 text-white shadow-card" : "bg-ink-100 text-ink-700"
-              }`}
-            >
-              Modification
-            </button>
-            {editMode ? (
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-ink-800">Tarifs</h4>
+              <p className="text-xs text-ink-500">TTC calculé automatiquement</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-ink-500">Tarif VDI</p>
+                  {priceVdiTtc > 0 ? <span className="text-[11px] text-ink-500">TTC {priceVdiTtc.toFixed(2)} €</span> : null}
+                </div>
+                {editMode ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFields.priceVdiHt}
+                    onChange={(e) => setEditFields((prev) => ({ ...prev, priceVdiHt: e.target.value }))}
+                    className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    required
+                  />
+                ) : (
+                  <p className="mt-2 text-sm font-semibold text-ink-900">{formatHtValue(displayPriceVdiHt)}</p>
+                )}
+              </div>
+              <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-ink-500">Tarif Distributeur</p>
+                  {priceDistributorTtc > 0 ? (
+                    <span className="text-[11px] text-ink-500">TTC {priceDistributorTtc.toFixed(2)} €</span>
+                  ) : null}
+                </div>
+                {editMode ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFields.priceDistributorHt}
+                    onChange={(e) => setEditFields((prev) => ({ ...prev, priceDistributorHt: e.target.value }))}
+                    className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    required
+                  />
+                ) : (
+                  <p className="mt-2 text-sm font-semibold text-ink-900">{formatHtValue(displayPriceDistributorHt)}</p>
+                )}
+              </div>
+              <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-ink-500">Prix de vente</p>
+                  {priceSaleTtc > 0 ? <span className="text-[11px] text-ink-500">TTC {priceSaleTtc.toFixed(2)} €</span> : null}
+                </div>
+                {editMode ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFields.priceSaleHt}
+                    onChange={(e) =>
+                      setEditFields((prev) => ({ ...prev, priceSaleHt: e.target.value, price: e.target.value }))
+                    }
+                    className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    required
+                  />
+                ) : (
+                  <p className="mt-2 text-sm font-semibold text-ink-900">{formatHtValue(displayPriceSaleHt)}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {editMode ? (
+            <div className="flex items-center justify-end">
               <button
                 type="submit"
-                className="ml-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
                 disabled={saveProduct.isPending}
               >
                 {saveProduct.isPending ? "Enregistrement…" : "Enregistrer"}
               </button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </form>
         {message ? <p className="mt-2 text-xs text-ink-600">{message}</p> : null}
         <div className="mt-4 grid gap-3 md:grid-cols-3">

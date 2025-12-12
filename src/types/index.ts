@@ -66,6 +66,15 @@ export type StockSnapshot = {
 
 export type StockVariation = StockMovement;
 
+export type StockValuationPoint = {
+  valuationDate: string;
+  totalValueCts: number;
+  currency: string;
+  scope: "ALL" | "LOCATION";
+  stockLocationId: number | null;
+  persisted: boolean;
+};
+
 export type Packaging = {
   id: number;
   name: string;

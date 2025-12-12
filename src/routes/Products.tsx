@@ -19,7 +19,6 @@ function Products() {
   const [subFamilyFilter, setSubFamilyFilter] = useState<string>("");
   const [newName, setNewName] = useState("");
   const [newSku, setNewSku] = useState("");
-  const [newPrice, setNewPrice] = useState<string>("");
   const [newPriceVdi, setNewPriceVdi] = useState<string>("");
   const [newPriceDistributor, setNewPriceDistributor] = useState<string>("");
   const [newPriceSale, setNewPriceSale] = useState<string>("");
@@ -116,7 +115,6 @@ function Products() {
       setFormMessage("Produit créé via PUT /products");
       setNewName("");
       setNewSku("");
-      setNewPrice("");
       setNewPriceVdi("");
       setNewPriceDistributor("");
       setNewPriceSale("");
@@ -146,17 +144,23 @@ function Products() {
   const handleCreate = (event: FormEvent) => {
     event.preventDefault();
     setFormMessage(null);
-    const price = Number(newPrice);
     const priceVdiHt = Number(newPriceVdi);
     const priceDistributorHt = Number(newPriceDistributor);
-    const priceSaleHt = Number(newPriceSale || newPrice);
+    const priceSaleHt = Number(newPriceSale);
     const purchasePrice = Number(newPurchasePrice);
     const tvaRate = Number(newTvaRate);
+    const fallbackPrice = Number.isFinite(priceSaleHt)
+      ? priceSaleHt
+      : Number.isFinite(priceVdiHt)
+        ? priceVdiHt
+        : Number.isFinite(priceDistributorHt)
+          ? priceDistributorHt
+          : Number.NaN;
     const { payload, errors } = validateProductPayload(
       {
         name: newName,
         sku: newSku,
-        price,
+        price: fallbackPrice,
         priceVdiHt,
         priceDistributorHt,
         priceSaleHt,
@@ -179,8 +183,19 @@ function Products() {
     setNewPriceSale("");
     setNewPurchasePrice("");
     setNewTvaRate("");
-    setNewPackaging("");
+    setNewPackagingSearch("");
   };
+
+  const parsedTvaRate = Number(newTvaRate);
+  const computeTtc = (htValue: string) => {
+    const ht = Number(htValue);
+    if (!Number.isFinite(ht) || !Number.isFinite(parsedTvaRate) || ht === 0) return 0;
+    return ht * (1 + parsedTvaRate / 100);
+  };
+
+  const priceVdiTtc = computeTtc(newPriceVdi);
+  const priceDistributorTtc = computeTtc(newPriceDistributor);
+  const priceSaleTtc = computeTtc(newPriceSale);
 
   return (
     <div className="space-y-4">
@@ -332,7 +347,7 @@ function Products() {
                       placeholder="Friandises saumon"
                     />
                   </label>
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2">
                     <label className="text-sm text-ink-700">
                       SKU
                       <input
@@ -340,65 +355,6 @@ function Products() {
                         onChange={(e) => setNewSku(e.target.value)}
                         className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
                         placeholder="SKU-123"
-                      />
-                    </label>
-                    <label className="text-sm text-ink-700">
-                      Prix (€)
-                      <input
-                        value={newPrice}
-                        onChange={(e) => setNewPrice(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="9.90"
-                      />
-                    </label>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <label className="text-sm text-ink-700">
-                      Tarif VDI HT (€)
-                      <input
-                        value={newPriceVdi}
-                        onChange={(e) => setNewPriceVdi(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="8.50"
-                      />
-                    </label>
-                    <label className="text-sm text-ink-700">
-                      Tarif Distributeur HT (€)
-                      <input
-                        value={newPriceDistributor}
-                        onChange={(e) => setNewPriceDistributor(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="7.90"
-                      />
-                    </label>
-                    <label className="text-sm text-ink-700">
-                      Prix de vente HT (€)
-                      <input
-                        value={newPriceSale}
-                        onChange={(e) => setNewPriceSale(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="9.90"
-                      />
-                    </label>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <label className="text-sm text-ink-700">
-                      Prix d'achat (€)
-                      <input
-                        value={newPurchasePrice}
-                        onChange={(e) => setNewPurchasePrice(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
-                        placeholder="6.20"
                       />
                     </label>
                     <label className="text-sm text-ink-700">
@@ -410,6 +366,69 @@ function Products() {
                         step="0.01"
                         className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
                         placeholder="20"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <label className="text-sm text-ink-700">
+                      Tarif VDI HT (€)
+                      <div className="mt-1 space-y-1">
+                        <input
+                          value={newPriceVdi}
+                          onChange={(e) => setNewPriceVdi(e.target.value)}
+                          type="number"
+                          step="0.01"
+                          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                          placeholder="8.50"
+                        />
+                        {priceVdiTtc > 0 ? (
+                          <p className="text-xs text-ink-500">TTC : {priceVdiTtc.toFixed(2)} €</p>
+                        ) : null}
+                      </div>
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Tarif Distributeur HT (€)
+                      <div className="mt-1 space-y-1">
+                        <input
+                          value={newPriceDistributor}
+                          onChange={(e) => setNewPriceDistributor(e.target.value)}
+                          type="number"
+                          step="0.01"
+                          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                          placeholder="7.90"
+                        />
+                        {priceDistributorTtc > 0 ? (
+                          <p className="text-xs text-ink-500">TTC : {priceDistributorTtc.toFixed(2)} €</p>
+                        ) : null}
+                      </div>
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Prix de vente HT (€)
+                      <div className="mt-1 space-y-1">
+                        <input
+                          value={newPriceSale}
+                          onChange={(e) => setNewPriceSale(e.target.value)}
+                          type="number"
+                          step="0.01"
+                          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                          placeholder="9.90"
+                        />
+                        {priceSaleTtc > 0 ? (
+                          <p className="text-xs text-ink-500">TTC : {priceSaleTtc.toFixed(2)} €</p>
+                        ) : null}
+                      </div>
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-sm text-ink-700">
+                      Prix d'achat (€)
+                      <input
+                        value={newPurchasePrice}
+                        onChange={(e) => setNewPurchasePrice(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        placeholder="6.20"
                       />
                     </label>
                     <label className="text-sm text-ink-700">

@@ -18,9 +18,11 @@ function Settings() {
   const [editingFamilyName, setEditingFamilyName] = useState("");
   const [newSubFamily, setNewSubFamily] = useState("");
   const [newSubFamilyFamilyId, setNewSubFamilyFamilyId] = useState<number | null>(null);
+  const [newSubFamilyFamilySearch, setNewSubFamilyFamilySearch] = useState("");
   const [editingSubFamilyId, setEditingSubFamilyId] = useState<number | null>(null);
   const [editingSubFamilyName, setEditingSubFamilyName] = useState("");
   const [editingSubFamilyFamilyId, setEditingSubFamilyFamilyId] = useState<number | null>(null);
+  const [editingSubFamilyFamilySearch, setEditingSubFamilyFamilySearch] = useState("");
   const [newPackagingName, setNewPackagingName] = useState("");
   const [editingPackagingId, setEditingPackagingId] = useState<number | null>(null);
   const [editingPackagingName, setEditingPackagingName] = useState("");
@@ -148,6 +150,7 @@ function Settings() {
     onSuccess: () => {
       toast("Sous-famille créée", "success");
       setNewSubFamily("");
+      setNewSubFamilyFamilySearch("");
       familiesQuery.refetch();
       queryClient.invalidateQueries({ queryKey: ["families"] });
       queryClient.invalidateQueries({ queryKey: ["sub-families"] });
@@ -313,7 +316,7 @@ function Settings() {
                 Ajouter
               </button>
             </div>
-            <div className="divide-y divide-ink-100 rounded-lg border border-ink-100 bg-white">
+            <div className="divide-y divide-ink-100 rounded-lg border border-ink-100 bg-white max-h-80 overflow-y-auto">
               {(familiesQuery.data ?? []).map((fam) => (
                 <div key={fam.id} className="flex items-center gap-2 px-3 py-2">
                   {editingFamilyId === fam.id ? (
@@ -378,10 +381,13 @@ function Settings() {
                 label="Famille"
                 placeholder="Choisir une famille"
                 valueId={newSubFamilyFamilyId ?? undefined}
-                search={familyOptions.find((f) => f.id === newSubFamilyFamilyId)?.label ?? ""}
-                onSearch={() => null}
+                search={newSubFamilyFamilySearch}
+                onSearch={setNewSubFamilyFamilySearch}
                 options={familyOptions}
-                onSelect={(opt) => setNewSubFamilyFamilyId(opt ? Number(opt.id) : null)}
+                onSelect={(opt) => {
+                  setNewSubFamilyFamilyId(opt ? Number(opt.id) : null);
+                  setNewSubFamilyFamilySearch(opt?.label ?? "");
+                }}
               />
               <label className="text-sm text-ink-700">
                 Nouvelle sous-famille
@@ -395,18 +401,18 @@ function Settings() {
             </div>
             <button
               type="button"
-              onClick={() =>
-                newSubFamilyFamilyId &&
-                newSubFamily.trim() &&
-                createSubFamilyMutation.mutate({ familyId: newSubFamilyFamilyId, name: newSubFamily.trim() })
-              }
-              className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white"
-              disabled={createSubFamilyMutation.isPending}
-            >
-              Ajouter
-            </button>
+            onClick={() =>
+              newSubFamilyFamilyId &&
+              newSubFamily.trim() &&
+              createSubFamilyMutation.mutate({ familyId: newSubFamilyFamilyId, name: newSubFamily.trim() })
+            }
+            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white"
+            disabled={createSubFamilyMutation.isPending}
+          >
+            Ajouter
+          </button>
 
-            <div className="divide-y divide-ink-100 rounded-lg border border-ink-100 bg-white">
+            <div className="divide-y divide-ink-100 rounded-lg border border-ink-100 bg-white max-h-80 overflow-y-auto">
               {(familiesQuery.data ?? []).flatMap((fam) =>
                 fam.subFamilies?.map((sub) => (
                   <div key={sub.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
@@ -421,10 +427,16 @@ function Settings() {
                         <SearchSelect
                           placeholder="Famille"
                           valueId={editingSubFamilyFamilyId ?? fam.id}
-                          search={familyOptions.find((f) => f.id === (editingSubFamilyFamilyId ?? fam.id))?.label ?? ""}
-                          onSearch={() => null}
+                          search={
+                            editingSubFamilyFamilySearch ||
+                            (familyOptions.find((f) => f.id === (editingSubFamilyFamilyId ?? fam.id))?.label ?? "")
+                          }
+                          onSearch={setEditingSubFamilyFamilySearch}
                           options={familyOptions}
-                          onSelect={(opt) => setEditingSubFamilyFamilyId(opt ? Number(opt.id) : null)}
+                          onSelect={(opt) => {
+                            setEditingSubFamilyFamilyId(opt ? Number(opt.id) : null);
+                            setEditingSubFamilyFamilySearch(opt?.label ?? "");
+                          }}
                         />
                         <button
                           type="button"
@@ -446,6 +458,7 @@ function Settings() {
                             setEditingSubFamilyId(null);
                             setEditingSubFamilyFamilyId(null);
                             setEditingSubFamilyName("");
+                            setEditingSubFamilyFamilySearch("");
                           }}
                         >
                           Annuler
@@ -461,6 +474,7 @@ function Settings() {
                             setEditingSubFamilyId(sub.id);
                             setEditingSubFamilyName(sub.name);
                             setEditingSubFamilyFamilyId(fam.id);
+                            setEditingSubFamilyFamilySearch(fam.name);
                           }}
                         >
                           Editer

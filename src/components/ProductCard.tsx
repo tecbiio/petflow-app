@@ -10,6 +10,9 @@ type Props = {
 };
 
 function ProductCard({ product, stock = 0, inventoryMissing }: Props) {
+  const priceSaleHt = Number(product.priceSaleHt ?? 0);
+  const priceSaleTtc = priceSaleHt > 0 ? priceSaleHt * (1 + Number(product.tvaRate ?? 0) / 100) : 0;
+
   return (
     <Link
       to={`/products/${product.id}`}
@@ -32,9 +35,13 @@ function ProductCard({ product, stock = 0, inventoryMissing }: Props) {
         <StockBadge quantity={stock} />
       </div>
       <p className="text-sm text-ink-600 line-clamp-2">{product.description}</p>
-      <p className="text-sm font-semibold text-brand-700">
-        {Number.isFinite(product.priceSaleHt) ? `${product.priceSaleHt.toFixed(2)} € HT` : "—"}
-      </p>
+      {priceSaleHt > 0 ? (
+        <p className="text-sm font-semibold text-brand-700">
+          {priceSaleHt.toFixed(2)} € HT · {priceSaleTtc.toFixed(2)} € TTC
+        </p>
+      ) : (
+        <p className="text-sm text-ink-400">—</p>
+      )}
     </Link>
   );
 }

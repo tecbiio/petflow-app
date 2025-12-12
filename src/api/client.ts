@@ -6,6 +6,7 @@ import {
   StockLocation,
   StockMovement,
   StockSnapshot,
+  StockValuationPoint,
   Packaging,
 } from "../types";
 
@@ -196,6 +197,9 @@ export const api = {
   getStockVariations: (productId: number): Promise<StockMovement[]> =>
     fetchJson(`/stock/${productId}/variations`),
 
+  listStockValuations: (params?: { days?: number; stockLocationId?: number | "all" }): Promise<StockValuationPoint[]> =>
+    fetchJson(`/stock-valuations${queryFrom({ days: params?.days, stockLocationId: params?.stockLocationId })}`),
+
   getMovementsByProduct: (productId: number): Promise<StockMovement[]> =>
     fetchJson(`/stock-movements/product/${productId}`),
 
@@ -218,6 +222,20 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payloads),
     }),
+
+  downloadDisposalMovements: async (): Promise<{ blob: Blob; filename?: string }> => {
+    const url = `${API_URL}/stock-movements/export/disposals`;
+    const response = await fetch(url, { method: "GET", credentials: "include" });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get("content-disposition");
+    const match = disposition?.match(/filename=\"?([^\";]+)\"?/i);
+    const filename = match?.[1];
+    return { blob, filename };
+  },
 
   listStockMovements: (filter?: { productId?: number; reasons?: string[] }): Promise<StockMovement[]> =>
     fetchJson(`/stock-movements${queryFrom({ productId: filter?.productId, reason: filter?.reasons })}`),
