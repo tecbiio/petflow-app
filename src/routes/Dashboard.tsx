@@ -22,8 +22,6 @@ function Dashboard() {
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [valuationLocationId, setValuationLocationId] = useState<number | "all">("all");
   const [valuationLocationSearch, setValuationLocationSearch] = useState("Tous les emplacements");
-  const [downloadingExport, setDownloadingExport] = useState(false);
-  const [exportMessage, setExportMessage] = useState<string | null>(null);
   const { data: valuationPoints = [], isLoading: loadingValuations } = useStockValuations({
     days: 30,
     stockLocationId: valuationLocationId,
@@ -47,15 +45,28 @@ function Dashboard() {
       })) ?? [],
   });
 
-  const lowestStock = useMemo(() => {
-    return products
-      .map((p, index) => ({
-        product: p,
-        quantity: stockQueries[index]?.data?.stock ?? 0,
-      }))
-      .sort((a, b) => a.quantity - b.quantity)
-      .slice(0, 5);
+  const thresholdMatches = useMemo(() => {
+    const matches = products
+      .map((product, index) => {
+        const quantity = stockQueries[index]?.data?.stock;
+        if (quantity === undefined) return null;
+        const threshold = product.stockThreshold ?? 0;
+        if (quantity > threshold) return null;
+        return { product, quantity, threshold, deficit: threshold - quantity };
+      })
+      .filter(Boolean) as Array<{
+      product: (typeof products)[number];
+      quantity: number;
+      threshold: number;
+      deficit: number;
+    }>;
+
+    return matches.sort((a, b) => b.deficit - a.deficit);
   }, [products, stockQueries]);
+
+  const stocksLoading = stockQueries.some((q) => q.isLoading);
+  const underThresholdCount = thresholdMatches.length;
+  const productsUnderThreshold = thresholdMatches.slice(0, 5);
 
   const inventoriesByProduct = useMemo(() => {
     const map = new Map<number, Inventory[]>();
@@ -91,26 +102,6 @@ function Dashboard() {
       ? "Tous les emplacements"
       : locations.find((l) => l.id === valuationLocationId)?.name ?? `Emplacement #${valuationLocationId}`;
 
-  const handleExport = async () => {
-    setExportMessage(null);
-    setDownloadingExport(true);
-    try {
-      const { blob, filename } = await api.downloadDisposalMovements();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename ?? "mouvements_perso_poubelle_don.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setExportMessage(err instanceof Error ? err.message : "Erreur export");
-    } finally {
-      setDownloadingExport(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -118,14 +109,30 @@ function Dashboard() {
         title="Pilotage des flux en un coup de patte"
         icon={<img src={logo} alt="PetFlow" className="h-full w-full object-contain" />}
         actions={
-          <button
-            type="button"
-            onClick={() => setShowQuickModal(true)}
-            className="btn btn-primary"
-            disabled={products.length === 0 || locations.length === 0}
-          >
-            Nouveau mouvement / inventaire
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/documents")}
+              className="btn btn-outline"
+            >
+              Documents
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/movements")}
+              className="btn btn-outline"
+            >
+              Mouvements
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowQuickModal(true)}
+              className="btn btn-primary"
+              disabled={products.length === 0 || locations.length === 0}
+            >
+              Nouveau mouvement / inventaire
+            </button>
+          </div>
         }
       />
 
@@ -136,15 +143,28 @@ function Dashboard() {
           hint="Catalogués"
           onClick={() => navigate("/products")}
         />
+        <StatCard
+          title="Emplacements"
+          value={locations.length}
+          hint="Actifs"
+          onClick={() => navigate("/locations")}
+        />
+        <StatCard
+          title="Sous le seuil"
+          value={stocksLoading ? "…" : underThresholdCount}
+          hint="Alertes stock"
+          tone={!stocksLoading && underThresholdCount > 0 ? "warning" : "default"}
+          onClick={() => navigate("/products")}
+        />
       </div>
 
-      <div className="panel">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-ink-900">Valorisation du stock</h2>
-            <p className="text-sm text-ink-500">30 derniers jours, calcul journalier en cache</p>
-          </div>
-          <div className="flex flex-wrap items-end gap-2">
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="panel lg:col-span-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-ink-900">Valorisation du stock</h2>
+              <p className="text-sm text-ink-500">30 derniers jours, calcul journalier en cache</p>
+            </div>
             <div className="w-64">
               <SearchSelect
                 label="Emplacement"
@@ -164,51 +184,57 @@ function Dashboard() {
                 }}
               />
             </div>
-            <button
-              type="button"
-              onClick={handleExport}
-              className="btn btn-outline border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100"
-              disabled={downloadingExport}
-            >
-              {downloadingExport ? "Export…" : "Exporter PERSO/POUBELLE/DON"}
-            </button>
+          </div>
+          <div className="mt-3">
+            <StockValuationChart
+              points={valuationPoints}
+              loading={loadingValuations}
+              locationLabel={valuationLocationLabel}
+            />
           </div>
         </div>
-        <div className="mt-3">
-          <StockValuationChart
-            points={valuationPoints}
-            loading={loadingValuations}
-            locationLabel={valuationLocationLabel}
-          />
-          {exportMessage ? <p className="mt-2 text-sm text-rose-600">{exportMessage}</p> : null}
-        </div>
-      </div>
 
-      <div className="panel">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink-900">Stocks les plus bas</h2>
-        </div>
-        <div className="mt-3 space-y-3">
-          {lowestStock.length === 0 ? (
-            <p className="text-sm text-ink-600">Aucun article suivi pour l'instant.</p>
-          ) : (
-            lowestStock.map(({ product, quantity }) => (
-              <button
-                key={product.id}
-                onClick={() => navigate(`/products/${product.id}`)}
-                className="card flex w-full items-center justify-between px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-card"
-              >
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-ink-900">{product.name}</p>
-                  <p className="text-xs text-ink-500">{product.sku}</p>
-                  {inventoriesByProduct.get(product.id)?.length ? null : (
-                    <InventoryStatusBadge />
-                  )}
-                </div>
-                <StockBadge quantity={quantity} />
-              </button>
-            ))
-          )}
+        <div className="panel lg:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold text-ink-900">Produits sous le seuil</h2>
+              <p className="text-sm text-ink-500">Basé sur le seuil défini par produit</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/products")}
+              className="btn btn-sm btn-outline"
+            >
+              Voir tout
+            </button>
+          </div>
+          <div className="mt-3 space-y-3">
+            {productsUnderThreshold.length === 0 ? (
+              <p className="text-sm text-ink-600">
+                {stocksLoading
+                  ? "Chargement des stocks…"
+                  : "Aucun produit sous le seuil. Définis un seuil dans la fiche produit si besoin."}
+              </p>
+            ) : (
+              productsUnderThreshold.map(({ product, quantity, threshold, deficit }) => (
+                <button
+                  key={product.id}
+                  onClick={() => navigate(`/products/${product.id}`)}
+                  className="card flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-card"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate text-sm font-semibold text-ink-900">{product.name}</p>
+                    <p className="text-xs text-ink-500">
+                      {product.sku} · Seuil {threshold}
+                      {deficit > 0 ? ` · Manque ${deficit}` : ""}
+                    </p>
+                    {inventoriesByProduct.get(product.id)?.length ? null : <InventoryStatusBadge />}
+                  </div>
+                  <StockBadge quantity={quantity} />
+                </button>
+              ))
+            )}
+          </div>
         </div>
       </div>
 

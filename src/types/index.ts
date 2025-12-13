@@ -15,6 +15,7 @@ export type Product = {
   id: number;
   name: string;
   sku: string;
+  stockThreshold: number;
   description: string | null;
   price: number;
   priceVdiHt: number;
@@ -48,6 +49,8 @@ export type StockMovement = {
   stockLocationId: number;
   quantityDelta: number;
   reason: string;
+  sourceDocumentType?: string | null;
+  sourceDocumentId?: string | null;
   createdAt: string;
 };
 

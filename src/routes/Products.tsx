@@ -18,10 +18,12 @@ function Products() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeOnly, setActiveOnly] = useState(true);
+  const [underThresholdOnly, setUnderThresholdOnly] = useState(false);
   const [familyFilter, setFamilyFilter] = useState<string>("");
   const [subFamilyFilter, setSubFamilyFilter] = useState<string>("");
   const [newName, setNewName] = useState("");
   const [newSku, setNewSku] = useState("");
+  const [newStockThreshold, setNewStockThreshold] = useState<string>("0");
   const [newPriceVdi, setNewPriceVdi] = useState<string>("");
   const [newPriceDistributor, setNewPriceDistributor] = useState<string>("");
   const [newPriceSale, setNewPriceSale] = useState<string>("");
@@ -40,10 +42,11 @@ function Products() {
   const resetFilters = () => {
     setSearch("");
     setActiveOnly(true);
+    setUnderThresholdOnly(false);
     setFamilyFilter("");
     setSubFamilyFilter("");
   };
-  const hasActiveFilters = Boolean(search.trim() || !activeOnly || familyFilter || subFamilyFilter);
+  const hasActiveFilters = Boolean(search.trim() || !activeOnly || underThresholdOnly || familyFilter || subFamilyFilter);
 
   const stockQueries = useQueries({
     queries:
@@ -62,6 +65,17 @@ function Products() {
         enabled: products.length > 0,
       })) ?? [],
   });
+
+  const stockByProductId = useMemo(() => {
+    const map = new Map<number, number>();
+    products.forEach((product, index) => {
+      const stock = stockQueries[index]?.data?.stock;
+      if (typeof stock === "number") {
+        map.set(product.id, stock);
+      }
+    });
+    return map;
+  }, [products, stockQueries]);
 
   const inventoriesByProduct = useMemo(() => {
     const map = new Map<number, Inventory[]>();
@@ -109,9 +123,12 @@ function Products() {
             (p.sku ?? "").toLowerCase().includes(search.toLowerCase())) &&
           (!familyFilter || p.family?.name === familyFilter) &&
           (!subFamilyFilter || p.subFamily?.name === subFamilyFilter) &&
-          (activeOnly ? p.isActive ?? true : true),
+          (activeOnly ? p.isActive ?? true : true) &&
+          (!underThresholdOnly ||
+            (stockByProductId.has(p.id) &&
+              (stockByProductId.get(p.id) ?? 0) <= (p.stockThreshold ?? 0))),
       ),
-    [activeOnly, familyFilter, products, search, subFamilyFilter],
+    [activeOnly, familyFilter, products, search, stockByProductId, subFamilyFilter, underThresholdOnly],
   );
 
   const createProduct = useMutation({
@@ -120,6 +137,7 @@ function Products() {
       toast("Produit créé", "success");
       setNewName("");
       setNewSku("");
+      setNewStockThreshold("0");
       setNewPriceVdi("");
       setNewPriceDistributor("");
       setNewPriceSale("");
@@ -155,6 +173,7 @@ function Products() {
     const priceSaleHt = Number(newPriceSale);
     const purchasePrice = Number(newPurchasePrice);
     const tvaRate = Number(newTvaRate);
+    const stockThreshold = Number(newStockThreshold);
     const fallbackPrice = Number.isFinite(priceSaleHt)
       ? priceSaleHt
       : Number.isFinite(priceVdiHt)
@@ -166,6 +185,7 @@ function Products() {
       {
         name: newName,
         sku: newSku,
+        stockThreshold,
         price: fallbackPrice,
         priceVdiHt,
         priceDistributorHt,
@@ -238,6 +258,13 @@ function Products() {
             className={["btn", activeOnly ? "btn-secondary" : "btn-outline"].join(" ")}
           >
             {activeOnly ? "Actifs" : "Tous"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnderThresholdOnly((prev) => !prev)}
+            className={["btn", underThresholdOnly ? "btn-secondary" : "btn-outline"].join(" ")}
+          >
+            Sous le seuil
           </button>
           {hasActiveFilters ? (
             <button type="button" onClick={resetFilters} className="btn btn-muted">
@@ -323,7 +350,7 @@ function Products() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((product) => {
-            const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.stock ?? 0;
+            const stock = stockByProductId.get(product.id) ?? 0;
             const hasInventory = (inventoriesByProduct.get(product.id)?.length ?? 0) > 0;
             return (
               <ProductCard
@@ -354,7 +381,7 @@ function Products() {
                       placeholder="Friandises saumon"
                     />
                   </label>
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-3">
                     <label className="text-sm text-ink-700">
                       SKU
                       <input
@@ -373,6 +400,18 @@ function Products() {
                         step="0.01"
                         className="mt-1 input"
                         placeholder="20"
+                      />
+                    </label>
+                    <label className="text-sm text-ink-700">
+                      Seuil stock
+                      <input
+                        value={newStockThreshold}
+                        onChange={(e) => setNewStockThreshold(e.target.value)}
+                        type="number"
+                        step="1"
+                        min="0"
+                        className="mt-1 input"
+                        placeholder="0"
                       />
                     </label>
                   </div>

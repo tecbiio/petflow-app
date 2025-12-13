@@ -1,6 +1,7 @@
 export type ProductPayload = {
   name?: string;
   sku?: string;
+  stockThreshold?: number;
   price?: number;
   priceVdiHt?: number;
   priceDistributorHt?: number;
@@ -51,6 +52,18 @@ export function validateProductPayload(raw: ProductPayload, options: ValidationO
     }
   } else {
     requireField("Prix");
+  }
+
+  if (raw.stockThreshold !== undefined) {
+    if (!Number.isFinite(raw.stockThreshold) || !Number.isInteger(raw.stockThreshold)) {
+      errors.push("Le seuil de stock doit être un entier");
+    } else if (raw.stockThreshold < 0) {
+      errors.push("Le seuil de stock doit être positif");
+    } else {
+      payload.stockThreshold = raw.stockThreshold;
+    }
+  } else if (!partial) {
+    payload.stockThreshold = 0;
   }
 
   type NumericProductKey = "priceVdiHt" | "priceDistributorHt" | "priceSaleHt" | "purchasePrice" | "tvaRate";

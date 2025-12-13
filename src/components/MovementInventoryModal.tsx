@@ -2,7 +2,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { Inventory, Product, StockLocation, StockMovement } from "../types";
-import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel } from "../lib/stockReasons";
+import {
+  DEFAULT_STOCK_MOVEMENT_REASON,
+  STOCK_MOVEMENT_REASONS,
+  StockMovementReason,
+  formatReasonLabel,
+} from "../lib/stockReasons";
 import SearchSelect, { SelectOption } from "./SearchSelect";
 import Modal from "./ui/Modal";
 
@@ -64,7 +69,7 @@ function MovementInventoryModal({
   const [movementReasonSearch, setMovementReasonSearch] = useState("");
   const [entryQuantity, setEntryQuantity] = useState(0);
   const [movementType, setMovementType] = useState<"IN" | "OUT">("IN");
-  const [movementReason, setMovementReason] = useState<StockMovementReason>(STOCK_MOVEMENT_REASONS[0]);
+  const [movementReason, setMovementReason] = useState<StockMovementReason>(DEFAULT_STOCK_MOVEMENT_REASON);
   const [movementReference, setMovementReference] = useState("");
   const [entryDate, setEntryDate] = useState(todayIsoDate());
   const [formMessage, setFormMessage] = useState<string | null>(null);
@@ -111,10 +116,10 @@ function MovementInventoryModal({
     setMovementLocationId(defaultLocation);
     setMovementProductSearch(defaultProduct ? products.find((p) => p.id === defaultProduct)?.name ?? "" : "");
     setMovementLocationSearch(defaultLocation ? locations.find((l) => l.id === defaultLocation)?.name ?? "" : "");
-    setMovementReasonSearch(formatReasonLabel(STOCK_MOVEMENT_REASONS[0]));
+    setMovementReasonSearch(formatReasonLabel(DEFAULT_STOCK_MOVEMENT_REASON));
     setEntryQuantity(0);
     setMovementType("IN");
-    setMovementReason(STOCK_MOVEMENT_REASONS[0]);
+    setMovementReason(DEFAULT_STOCK_MOVEMENT_REASON);
     setMovementReference("");
     setEntryDate(todayIsoDate());
     setFormMessage(null);
@@ -176,14 +181,13 @@ function MovementInventoryModal({
     }
     if (entryMode === "movement") {
       const signed = movementType === "IN" ? Math.abs(entryQuantity) : -Math.abs(entryQuantity);
-      const reasonLabel = movementReference.trim()
-        ? `${movementReason} - ${movementReference.trim()}`
-        : movementReason;
+      const reference = movementReference.trim();
       createMovement.mutate({
         productId: movementProductId,
         stockLocationId: movementLocationId,
         quantityDelta: signed,
-        reason: reasonLabel,
+        reason: movementReason,
+        ...(reference ? { sourceDocumentType: "MANUEL", sourceDocumentId: reference } : {}),
         createdAt: parsedDate.toISOString(),
       });
     } else {
@@ -330,7 +334,7 @@ function MovementInventoryModal({
           {entryMode === "movement" ? (
             <div className="grid gap-3 md:grid-cols-2">
               <SearchSelect
-                label="Motif (stock-reason)"
+                label="Motif"
                 placeholder="Rechercher un motif"
                 valueId={movementReason}
                 search={movementReasonSearch}

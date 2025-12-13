@@ -8,7 +8,7 @@ import { Inventory, StockMovement } from "../types";
 import MovementInventoryModal from "../components/MovementInventoryModal";
 import PageHeader from "../components/ui/PageHeader";
 import EmptyState from "../components/ui/EmptyState";
-import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel } from "../lib/stockReasons";
+import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel, parseStockMovementReason } from "../lib/stockReasons";
 import { api } from "../api/client";
 
 type TypeFilter = "movement" | "inventory";
@@ -274,15 +274,26 @@ function Movements() {
                   <div className="text-right">
                     {row.kind === "movement" ? (
                       <>
-                        <p
-                          className={`text-sm font-semibold ${
-                            row.data.quantityDelta >= 0 ? "text-emerald-700" : "text-amber-700"
-                          }`}
-                        >
-                          {row.data.quantityDelta >= 0 ? "+" : ""}
-                          {row.data.quantityDelta}
-                        </p>
-                        <p className="text-xs text-ink-500">{row.data.reason}</p>
+                        {(() => {
+                          const parsed = parseStockMovementReason(row.data.reason);
+                          const label = parsed.code ? formatReasonLabel(parsed.code) : row.data.reason;
+                          const reference = row.data.sourceDocumentId ?? parsed.details;
+                          const display = reference ? `${label} · ${reference}` : label;
+
+                          return (
+                            <>
+                              <p
+                                className={`text-sm font-semibold ${
+                                  row.data.quantityDelta >= 0 ? "text-emerald-700" : "text-amber-700"
+                                }`}
+                              >
+                                {row.data.quantityDelta >= 0 ? "+" : ""}
+                                {row.data.quantityDelta}
+                              </p>
+                              <p className="text-xs text-ink-500">{display}</p>
+                            </>
+                          );
+                        })()}
                       </>
                     ) : (
                       <>

@@ -51,6 +51,7 @@ type ActiveFilter = { active?: boolean };
 type UpsertProductPayload = {
   name: string;
   sku: string;
+  stockThreshold: number;
   description?: string | null;
   price: number;
   priceVdiHt: number;
@@ -76,6 +77,8 @@ type StockMovementPayload = {
   stockLocationId: number;
   quantityDelta: number;
   reason?: string;
+  sourceDocumentType?: string;
+  sourceDocumentId?: string;
   createdAt?: string;
 };
 
@@ -115,6 +118,7 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
 function mapProduct(product: ApiProduct): Product {
   return {
     ...product,
+    stockThreshold: Number(product.stockThreshold ?? 0),
     price: typeof product.price === "string" ? Number(product.price) : product.price,
     priceVdiHt: Number(product.priceVdiHt ?? product.price),
     priceDistributorHt: Number(product.priceDistributorHt ?? product.price),

@@ -15,6 +15,7 @@ import StockChart from "../components/StockChart";
 import { validateProductPayload } from "../lib/constraints";
 import SearchSelect, { SelectOption } from "../components/SearchSelect";
 import MovementInventoryModal from "../components/MovementInventoryModal";
+import { formatReasonLabel, parseStockMovementReason } from "../lib/stockReasons";
 
 function ProductDetail() {
   const { productId = "" } = useParams();
@@ -22,6 +23,7 @@ function ProductDetail() {
   type ProductUpdateInput = {
     name?: string;
     sku?: string;
+    stockThreshold?: number;
     price?: number;
     priceVdiHt?: number;
     priceDistributorHt?: number;
@@ -42,6 +44,7 @@ function ProductDetail() {
   const [editFields, setEditFields] = useState({
     name: "",
     sku: "",
+    stockThreshold: "0",
     price: "",
     priceVdiHt: "",
     priceDistributorHt: "",
@@ -196,6 +199,7 @@ function ProductDetail() {
       setEditFields({
         name: product.name ?? "",
         sku: product.sku ?? "",
+        stockThreshold: product.stockThreshold !== undefined ? String(product.stockThreshold) : "0",
         price: product.priceSaleHt !== undefined ? String(product.priceSaleHt) : product.price !== undefined ? String(product.price) : "",
         priceVdiHt: product.priceVdiHt !== undefined ? String(product.priceVdiHt) : "",
         priceDistributorHt: product.priceDistributorHt !== undefined ? String(product.priceDistributorHt) : "",
@@ -232,6 +236,7 @@ function ProductDetail() {
     const parsedPriceSaleHt = Number(editFields.priceSaleHt || editFields.price);
     const parsedPurchasePrice = Number(editFields.purchasePrice);
     const parsedTvaRate = Number(editFields.tvaRate);
+    const parsedStockThreshold = Number(editFields.stockThreshold);
     const fallbackPrice = Number.isFinite(parsedPriceSaleHt)
       ? parsedPriceSaleHt
       : Number.isFinite(parsedPriceVdiHt)
@@ -245,6 +250,7 @@ function ProductDetail() {
       {
         name: editFields.name,
         sku: editFields.sku,
+        stockThreshold: parsedStockThreshold,
         price: fallbackPrice,
         priceVdiHt: parsedPriceVdiHt,
         priceDistributorHt: parsedPriceDistributorHt,
@@ -296,6 +302,7 @@ function ProductDetail() {
     : Number(product.priceDistributorHt ?? 0);
   const displayPriceSaleHt = editMode ? Number(editFields.priceSaleHt) : Number(product.priceSaleHt ?? 0);
   const purchasePriceValue = editMode ? Number(editFields.purchasePrice) : Number(product.purchasePrice ?? 0);
+  const displayStockThreshold = editMode ? Number(editFields.stockThreshold) : Number(product.stockThreshold ?? 0);
   const priceVdiTtc = computeTtcValue(displayPriceVdiHt, displayTvaRate);
   const priceDistributorTtc = computeTtcValue(displayPriceDistributorHt, displayTvaRate);
   const priceSaleTtc = computeTtcValue(displayPriceSaleHt, displayTvaRate);
@@ -367,6 +374,7 @@ function ProductDetail() {
                       setEditFields({
                         name: product.name ?? "",
                         sku: product.sku ?? "",
+                        stockThreshold: product.stockThreshold !== undefined ? String(product.stockThreshold) : "0",
                         price:
                           product.priceSaleHt !== undefined
                             ? String(product.priceSaleHt)
@@ -509,7 +517,7 @@ function ProductDetail() {
                 <p className="text-xs uppercase tracking-wide text-ink-500">Logistique & TVA</p>
                 <span className="text-xs text-ink-400">HT + rappel TTC</span>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <label className="text-xs font-semibold text-ink-600">
                   Prix d'achat HT
                   {editMode ? (
@@ -540,6 +548,22 @@ function ProductDetail() {
                     <div className="text-sm text-ink-900">
                       {Number.isFinite(displayTvaRate) ? `${displayTvaRate.toFixed(2)} %` : "—"}
                     </div>
+                  )}
+                </label>
+                <label className="text-xs font-semibold text-ink-600">
+                  Seuil stock
+                  {editMode ? (
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={editFields.stockThreshold}
+                      onChange={(e) => setEditFields((prev) => ({ ...prev, stockThreshold: e.target.value }))}
+                      className="mt-1 input"
+                      required
+                    />
+                  ) : (
+                    <div className="text-sm text-ink-900">{Number.isFinite(displayStockThreshold) ? `${displayStockThreshold} unités` : "—"}</div>
                   )}
                 </label>
               </div>
@@ -655,6 +679,7 @@ function ProductDetail() {
               <p className="text-lg font-semibold text-ink-900">{stockQuantity} unités</p>
               <StockBadge quantity={stockQuantity} />
             </div>
+            <p className="text-xs text-ink-500">Seuil : {displayStockThreshold} unités</p>
             <p className="text-xs text-ink-500">Synchronisé via mouvements et inventaires.</p>
           </div>
           <div className="card p-3">
@@ -684,7 +709,7 @@ function ProductDetail() {
             <h3 className="text-lg font-semibold text-ink-900">Mouvements</h3>
           </div>
           <div className="mt-3">
-            <StockChart data={chartData} />
+            <StockChart data={chartData} threshold={product.stockThreshold ?? 0} />
           </div>
         </div>
 
@@ -703,7 +728,15 @@ function ProductDetail() {
                       {variation.quantityDelta > 0 ? "+" : ""}
                       {variation.quantityDelta} unités
                     </p>
-                    <p className="text-xs text-ink-500">{variation.reason || variation.stockLocationId}</p>
+                    <p className="text-xs text-ink-500">
+                      {(() => {
+                        const parsed = parseStockMovementReason(variation.reason);
+                        const label = parsed.code ? formatReasonLabel(parsed.code) : variation.reason;
+                        const reference = variation.sourceDocumentId ?? parsed.details;
+                        const display = reference ? `${label} · ${reference}` : label;
+                        return display || String(variation.stockLocationId);
+                      })()}
+                    </p>
                   </div>
                   <p className="text-xs text-ink-500">{new Date(variation.createdAt).toLocaleString("fr-FR")}</p>
                 </div>
