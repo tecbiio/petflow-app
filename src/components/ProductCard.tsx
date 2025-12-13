@@ -16,7 +16,7 @@ function ProductCard({ product, stock = 0, inventoryMissing }: Props) {
   return (
     <Link
       to={`/products/${product.id}`}
-      className="glass-panel flex flex-col gap-3 p-4 transition hover:-translate-y-0.5 hover:shadow-xl"
+      className="panel flex flex-col gap-3 transition hover:-translate-y-0.5 hover:shadow-xl"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">

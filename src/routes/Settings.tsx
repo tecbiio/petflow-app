@@ -202,7 +202,7 @@ function Settings() {
   return (
     <div className="space-y-4">
       <PageHeader title="Réglages" subtitle="Intégrations, catalogues et référentiels." />
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink-900">Extranet Husse</h3>
           {husseConfig.data?.hasCredentials ? (
@@ -217,7 +217,7 @@ function Settings() {
             <input
               value={settings.husseUsername || ""}
               onChange={(e) => markChange({ husseUsername: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+              className="mt-1 input"
               type="email"
               placeholder={husseConfig.data?.hasCredentials ? "••••••••" : undefined}
             />
@@ -227,7 +227,7 @@ function Settings() {
             <input
               value={settings.hussePassword || ""}
               onChange={(e) => markChange({ hussePassword: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+              className="mt-1 input"
               type="password"
               placeholder={husseConfig.data?.hasCredentials ? "••••••••" : undefined}
             />
@@ -237,7 +237,7 @@ function Settings() {
           <button
             type="button"
             onClick={() => setConfirmImportOpen(true)}
-            className="rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-outline"
             disabled={importHusseProducts.isPending}
           >
             {importHusseProducts.isPending ? "Import en cours…" : "Importer les produits depuis l'extranet Husse"}
@@ -248,7 +248,7 @@ function Settings() {
         </div>
       </div>
 
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink-900">API Axonaut</h3>
           {axonautConfig.data?.hasApiKey ? (
@@ -263,7 +263,7 @@ function Settings() {
             <input
               value={settings.axonautApiKey || ""}
               onChange={(e) => markChange({ axonautApiKey: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+              className="mt-1 input"
               type="password"
               placeholder={axonautConfig.data?.hasApiKey ? "••••••••••••" : undefined}
             />
@@ -273,7 +273,7 @@ function Settings() {
           <button
             type="button"
             onClick={() => importAxonautProducts.mutate()}
-            className="rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-outline"
             disabled={importAxonautProducts.isPending || !axonautConfig.data?.hasApiKey}
           >
             {importAxonautProducts.isPending ? "Import en cours…" : "Importer les produits depuis Axonaut"}
@@ -288,7 +288,7 @@ function Settings() {
         <button
           type="button"
           onClick={handleSaveAll}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+          className="btn btn-primary"
           disabled={saveSettings.isPending || axonautConfig.isLoading || husseConfig.isLoading}
         >
           {saveSettings.isPending ? "Sauvegarde…" : "Sauvegarder tous les réglages"}
@@ -296,7 +296,7 @@ function Settings() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <div className="glass-panel p-4">
+        <div className="panel">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ink-900">Familles</h3>
             <span className="text-xs text-ink-500">{familiesQuery.data?.length ?? 0} items</span>
@@ -306,13 +306,13 @@ function Settings() {
               <input
                 value={newFamily}
                 onChange={(e) => setNewFamily(e.target.value)}
-                className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                className="input"
                 placeholder="Nouvelle famille"
               />
               <button
                 type="button"
                 onClick={() => newFamily.trim() && createFamilyMutation.mutate(newFamily.trim())}
-                className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white"
+                className="btn btn-primary btn-sm"
                 disabled={createFamilyMutation.isPending}
               >
                 Ajouter
@@ -370,7 +370,7 @@ function Settings() {
           </div>
         </div>
 
-        <div className="glass-panel p-4">
+        <div className="panel">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ink-900">Sous-familles</h3>
             <span className="text-xs text-ink-500">
@@ -396,23 +396,22 @@ function Settings() {
                 <input
                   value={newSubFamily}
                   onChange={(e) => setNewSubFamily(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                  className="mt-1 input"
                   placeholder="Sous-famille"
                 />
               </label>
             </div>
             <button
               type="button"
-            onClick={() =>
-              newSubFamilyFamilyId &&
-              newSubFamily.trim() &&
-              createSubFamilyMutation.mutate({ familyId: newSubFamilyFamilyId, name: newSubFamily.trim() })
-            }
-            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white"
-            disabled={createSubFamilyMutation.isPending}
-          >
-            Ajouter
-          </button>
+              onClick={() => {
+                if (!newSubFamilyFamilyId || !newSubFamily.trim()) return;
+                createSubFamilyMutation.mutate({ familyId: newSubFamilyFamilyId, name: newSubFamily.trim() });
+              }}
+              className="btn btn-primary btn-sm"
+              disabled={createSubFamilyMutation.isPending || !newSubFamilyFamilyId || !newSubFamily.trim()}
+            >
+              {createSubFamilyMutation.isPending ? "Ajout…" : "Ajouter"}
+            </button>
 
             <div className="divide-y divide-ink-100 rounded-lg border border-ink-100 bg-white max-h-80 overflow-y-auto">
               {(familiesQuery.data ?? []).flatMap((fam) =>
@@ -491,7 +490,7 @@ function Settings() {
         </div>
       </div>
 
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-900">Conditionnements</h3>
           <span className="text-xs text-ink-500">{packagingsQuery.data?.length ?? 0}</span>
@@ -500,13 +499,13 @@ function Settings() {
           <input
             value={newPackagingName}
             onChange={(e) => setNewPackagingName(e.target.value)}
-            className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+            className="input"
             placeholder="Nouveau conditionnement"
           />
           <button
             type="button"
             onClick={() => newPackagingName.trim() && createPackagingMutation.mutate(newPackagingName.trim())}
-            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white"
+            className="btn btn-primary btn-sm"
             disabled={createPackagingMutation.isPending}
           >
             Ajouter

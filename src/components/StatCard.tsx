@@ -13,7 +13,7 @@ function StatCard({ title, value, hint, tone = "default", onClick }: Props) {
     info: "from-brand-50 to-white text-brand-900",
   }[tone];
 
-  const className = `glass-panel relative overflow-hidden bg-gradient-to-br ${colors} px-4 py-4`;
+  const className = `panel relative overflow-hidden bg-gradient-to-br ${colors}`;
 
   if (onClick) {
     return (

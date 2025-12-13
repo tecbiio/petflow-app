@@ -10,7 +10,7 @@ type Props = {
 
 function PageHeader({ title, subtitle, kicker, icon, actions }: Props) {
   return (
-    <div className="glass-panel flex flex-wrap items-center justify-between gap-4 p-4">
+    <div className="panel flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         {icon ? (
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-brand-100">
@@ -18,9 +18,9 @@ function PageHeader({ title, subtitle, kicker, icon, actions }: Props) {
           </div>
         ) : null}
         <div>
-          {kicker ? <p className="text-sm uppercase tracking-wide text-ink-500">{kicker}</p> : null}
-          <h1 className="text-lg font-semibold text-ink-900">{title}</h1>
-          {subtitle ? <p className="text-xs text-ink-500">{subtitle}</p> : null}
+          {kicker ? <p className="text-xs uppercase tracking-wide text-ink-500">{kicker}</p> : null}
+          <h1 className="text-2xl font-semibold leading-tight text-ink-900">{title}</h1>
+          {subtitle ? <p className="mt-1 text-sm text-ink-600">{subtitle}</p> : null}
         </div>
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}

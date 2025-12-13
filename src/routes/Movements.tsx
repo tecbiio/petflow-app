@@ -7,6 +7,7 @@ import { useAnchorRect } from "../hooks/useAnchorRect";
 import { Inventory, StockMovement } from "../types";
 import MovementInventoryModal from "../components/MovementInventoryModal";
 import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
 import { STOCK_MOVEMENT_REASONS, StockMovementReason, formatReasonLabel } from "../lib/stockReasons";
 import { api } from "../api/client";
 
@@ -107,6 +108,17 @@ function Movements() {
     }
   };
 
+  const hasActiveFilters = Boolean(
+    typeFilter !== "movement" || productFilter !== "all" || productSearch.trim() || movementReasonsFilter.length > 0,
+  );
+
+  const resetFilters = () => {
+    setTypeFilter("movement");
+    setMovementReasonsFilter([]);
+    setProductFilter("all");
+    setProductSearch("");
+  };
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -116,7 +128,7 @@ function Movements() {
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary"
             disabled={products.length === 0 || locations.length === 0}
           >
             Nouveau mouvement / inventaire
@@ -124,7 +136,7 @@ function Movements() {
         }
       />
 
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="panel flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -133,11 +145,10 @@ function Movements() {
                 setMovementReasonsFilter([]);
                 setTypeFilter("movement");
               }}
-              className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
-                movementReasonsFilter.length === 0 && typeFilter === "movement"
-                  ? "bg-ink-900 text-white shadow-card"
-                  : "text-ink-700 hover:bg-ink-50"
-              }`}
+              className={[
+                "btn btn-sm",
+                movementReasonsFilter.length === 0 && typeFilter === "movement" ? "btn-secondary" : "btn-outline",
+              ].join(" ")}
             >
               Tous les mouvements
             </button>
@@ -153,11 +164,10 @@ function Movements() {
                       isActive ? prev.filter((r) => r !== option.value) : [...prev, option.value],
                     );
                   }}
-                  className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
-                    isActive && typeFilter === "movement"
-                      ? "bg-ink-900 text-white shadow-card"
-                      : "text-ink-700 hover:bg-ink-50"
-                  }`}
+                  className={[
+                    "btn btn-sm",
+                    isActive && typeFilter === "movement" ? "btn-secondary" : "btn-outline",
+                  ].join(" ")}
                 >
                   {option.label}
                 </button>
@@ -172,9 +182,7 @@ function Movements() {
                 setTypeFilter("inventory");
                 setMovementReasonsFilter([]);
               }}
-              className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
-                typeFilter === "inventory" ? "bg-ink-900 text-white shadow-card" : "text-ink-700 hover:bg-ink-50"
-              }`}
+              className={["btn btn-sm", typeFilter === "inventory" ? "btn-secondary" : "btn-outline"].join(" ")}
             >
               Inventaires
             </button>
@@ -183,12 +191,11 @@ function Movements() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setProductFilter("all")}
-            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-              productFilter === "all"
-                ? "bg-ink-900 text-white shadow-card"
-                : "border border-ink-100 bg-white text-ink-700 hover:bg-ink-50"
-            }`}
+            onClick={() => {
+              setProductFilter("all");
+              setProductSearch("");
+            }}
+            className={["btn btn-sm", productFilter === "all" ? "btn-secondary" : "btn-outline"].join(" ")}
           >
             Tous les produits
           </button>
@@ -203,7 +210,7 @@ function Movements() {
               }}
               ref={filterAnchor.ref}
               placeholder={productFilter === "all" ? "Filtrer par produit…" : productMap.get(productFilter)?.name}
-              className="w-56 rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm"
+              className="input w-56"
             />
           </div>
         </div>
@@ -212,7 +219,29 @@ function Movements() {
       {loading ? (
         <p className="text-sm text-ink-600">Chargement…</p>
       ) : combined.length === 0 ? (
-        <p className="text-sm text-ink-600">Aucune entrée pour ces filtres.</p>
+        <EmptyState
+          title="Aucune entrée"
+          description={
+            hasActiveFilters ? "Aucun mouvement ou inventaire pour ces filtres." : "Crée ton premier mouvement ou inventaire."
+          }
+          action={
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {hasActiveFilters ? (
+                <button type="button" onClick={resetFilters} className="btn btn-muted">
+                  Réinitialiser
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                className="btn btn-primary"
+                disabled={products.length === 0 || locations.length === 0}
+              >
+                Nouveau mouvement / inventaire
+              </button>
+            </div>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {combined.map((row) => {
@@ -221,10 +250,7 @@ function Movements() {
             const key = `${row.kind}-${row.data.id}`;
 
             return (
-              <div
-                key={key}
-                className="glass-panel rounded-xl border border-ink-100 bg-white px-4 py-3 shadow-card"
-              >
+              <div key={key} className="card px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span
@@ -278,7 +304,6 @@ function Movements() {
         </div>
       )}
 
-
       <MovementInventoryModal
         open={showCreateModal}
         onOpenChange={(next) => setShowCreateModal(next)}
@@ -290,7 +315,7 @@ function Movements() {
       {productFilterFocused && productSearch.trim() && filterAnchor.rect
         ? createPortal(
             <div
-              className="z-[4000] max-h-56 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
+              className="z-[4000] anim-popover-in max-h-56 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
               style={{
                 position: "fixed",
                 top: (filterAnchor.rect?.bottom ?? 0) + 4,

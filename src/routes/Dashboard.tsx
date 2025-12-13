@@ -4,6 +4,7 @@ import { useQueries } from "@tanstack/react-query";
 import MovementInventoryModal from "../components/MovementInventoryModal";
 import StatCard from "../components/StatCard";
 import StockBadge from "../components/StockBadge";
+import InventoryStatusBadge from "../components/InventoryStatusBadge";
 import StockValuationChart from "../components/StockValuationChart";
 import SearchSelect from "../components/SearchSelect";
 import PageHeader from "../components/ui/PageHeader";
@@ -120,7 +121,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={() => setShowQuickModal(true)}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary"
             disabled={products.length === 0 || locations.length === 0}
           >
             Nouveau mouvement / inventaire
@@ -137,13 +138,13 @@ function Dashboard() {
         />
       </div>
 
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-ink-900">Valorisation du stock</h2>
             <p className="text-sm text-ink-500">30 derniers jours, calcul journalier en cache</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="w-64">
               <SearchSelect
                 label="Emplacement"
@@ -166,7 +167,7 @@ function Dashboard() {
             <button
               type="button"
               onClick={handleExport}
-              className="mt-5 inline-flex items-center rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn btn-outline border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100"
               disabled={downloadingExport}
             >
               {downloadingExport ? "Export…" : "Exporter PERSO/POUBELLE/DON"}
@@ -183,7 +184,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-ink-900">Stocks les plus bas</h2>
         </div>
@@ -195,15 +196,13 @@ function Dashboard() {
               <button
                 key={product.id}
                 onClick={() => navigate(`/products/${product.id}`)}
-                className="flex w-full items-center justify-between rounded-xl border border-ink-100 bg-white px-3 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-card"
+                className="card flex w-full items-center justify-between px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-card"
               >
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-ink-900">{product.name}</p>
                   <p className="text-xs text-ink-500">{product.sku}</p>
                   {inventoriesByProduct.get(product.id)?.length ? null : (
-                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
-                      Inventaire manquant — stock estimé
-                    </span>
+                    <InventoryStatusBadge />
                   )}
                 </div>
                 <StockBadge quantity={quantity} />

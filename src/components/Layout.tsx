@@ -1,4 +1,4 @@
-import { NavLink, Link, Outlet } from "react-router-dom";
+import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import logo from "../assets/petflow-logo.svg";
 import { useAuth } from "./AuthProvider";
 
@@ -13,12 +13,13 @@ const links = [
 
 function Layout() {
   const { user, logout } = useAuth();
+  const location = useLocation();
 
   return (
     <div className="min-h-screen text-ink-900">
       <div className="relative min-h-screen">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-100 via-white to-ink-50" />
-        <header className="relative border-b border-white/60 bg-white/80 backdrop-blur-xl">
+        <header className="sticky top-0 z-40 border-b border-white/60 bg-white/80 backdrop-blur-xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 gap-4">
             <Link to="/" className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-brand-100">
@@ -52,7 +53,7 @@ function Layout() {
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-white text-ink-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-ink-900 hover:text-white hover:shadow-card"
+                className="btn btn-outline btn-icon border-ink-100 text-ink-700 hover:bg-ink-900 hover:text-white"
                 title="Déconnexion"
               >
                 <span className="sr-only">Déconnexion</span>
@@ -70,7 +71,9 @@ function Layout() {
         </header>
 
         <main className="relative mx-auto max-w-6xl px-6 py-8">
-          <Outlet />
+          <div key={location.pathname} className="anim-page-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

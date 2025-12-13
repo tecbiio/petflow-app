@@ -32,7 +32,7 @@ function MovementInventoryModal({
   locations,
   showTrigger = false,
   triggerLabel = "Nouveau mouvement / inventaire",
-  triggerClassName = "rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card",
+  triggerClassName = "btn btn-primary",
   triggerDisabled,
   modes,
   defaultProductId,
@@ -222,31 +222,25 @@ function MovementInventoryModal({
       canClose={!isBusy}
     >
       {allowedModes.length > 1 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setEntryMode("movement")}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                entryMode === "movement"
-                  ? "bg-ink-900 text-white shadow-card"
-                  : "bg-ink-100 text-ink-700 hover:bg-ink-200"
-              }`}
-            >
-              Mouvement
-            </button>
-            <button
-              type="button"
-              onClick={() => setEntryMode("inventory")}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                entryMode === "inventory"
-                  ? "bg-ink-900 text-white shadow-card"
-                  : "bg-ink-100 text-ink-700 hover:bg-ink-200"
-              }`}
-            >
-              Inventaire partiel
-            </button>
-          </div>
-        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setEntryMode("movement")}
+            className={["btn", entryMode === "movement" ? "btn-secondary" : "btn-muted"].join(" ")}
+            disabled={isBusy}
+          >
+            Mouvement
+          </button>
+          <button
+            type="button"
+            onClick={() => setEntryMode("inventory")}
+            className={["btn", entryMode === "inventory" ? "btn-secondary" : "btn-muted"].join(" ")}
+            disabled={isBusy}
+          >
+            Inventaire partiel
+          </button>
+        </div>
+      ) : null}
 
         <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
           <div className="grid gap-3 md:grid-cols-2">
@@ -294,7 +288,7 @@ function MovementInventoryModal({
                 min={0}
                 value={entryQuantity}
                 onChange={(e) => setEntryQuantity(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
               />
             </label>
 
@@ -305,22 +299,16 @@ function MovementInventoryModal({
                   <button
                     type="button"
                     onClick={() => setMovementType("IN")}
-                    className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                      movementType === "IN"
-                        ? "bg-ink-900 text-white shadow-card"
-                        : "bg-ink-100 text-ink-700 hover:bg-ink-200"
-                    }`}
+                    className={["btn flex-1", movementType === "IN" ? "btn-secondary" : "btn-muted"].join(" ")}
+                    disabled={isBusy}
                   >
                     Entrée
                   </button>
                   <button
                     type="button"
                     onClick={() => setMovementType("OUT")}
-                    className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                      movementType === "OUT"
-                        ? "bg-ink-900 text-white shadow-card"
-                        : "bg-ink-100 text-ink-700 hover:bg-ink-200"
-                    }`}
+                    className={["btn flex-1", movementType === "OUT" ? "btn-secondary" : "btn-muted"].join(" ")}
+                    disabled={isBusy}
                   >
                     Sortie
                   </button>
@@ -334,7 +322,7 @@ function MovementInventoryModal({
                 type="date"
                 value={entryDate}
                 onChange={(e) => setEntryDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
               />
             </label>
           </div>
@@ -362,7 +350,7 @@ function MovementInventoryModal({
                   type="text"
                   value={movementReference}
                   onChange={(e) => setMovementReference(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                  className="mt-1 input"
                   placeholder="N° commande, détail..."
                 />
               </label>
@@ -375,14 +363,14 @@ function MovementInventoryModal({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn btn-muted"
                 disabled={isBusy}
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+                className="btn btn-primary"
                 disabled={isBusy || products.length === 0 || locations.length === 0}
               >
                 {isBusy ? "Envoi…" : "Créer"}

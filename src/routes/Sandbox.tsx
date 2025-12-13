@@ -100,7 +100,7 @@ function Sandbox() {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="glass-panel p-4 space-y-3">
+        <div className="panel space-y-3">
           <h3 className="text-sm font-semibold text-ink-900">1. Config locale</h3>
           <form className="space-y-3" onSubmit={handleSaveKey}>
             <label className="text-sm text-ink-700">
@@ -108,13 +108,13 @@ function Sandbox() {
               <input
                 value={settings.axonautApiKey || ""}
                 onChange={(e) => update({ axonautApiKey: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
                 type="password"
               />
             </label>
             <button
               type="submit"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+              className="btn btn-primary"
               disabled={pushConfig.isPending}
             >
               {pushConfig.isPending ? "Envoi…" : "Envoyer au core"}
@@ -142,7 +142,7 @@ function Sandbox() {
           </div>
         </div>
 
-        <div className="glass-panel p-4 space-y-3">
+        <div className="panel space-y-3">
           <h3 className="text-sm font-semibold text-ink-900">2. Config reçue par le core</h3>
           {coreConfigQuery.isLoading ? (
             <p className="text-sm text-ink-600">Chargement…</p>
@@ -156,14 +156,14 @@ function Sandbox() {
           <button
             type="button"
             onClick={() => coreConfigQuery.refetch()}
-            className="rounded-lg bg-ink-900 px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-secondary btn-sm"
           >
             Rafraîchir la config
           </button>
         </div>
       </div>
 
-      <div className="glass-panel p-4 space-y-3">
+      <div className="panel space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-900">3. Tester un lookup</h3>
           <span className="pill bg-ink-100 text-ink-700">/axonaut/lookup</span>
@@ -172,12 +172,12 @@ function Sandbox() {
           <input
             value={reference}
             onChange={(e) => setReference(e.target.value)}
-            className="w-full rounded-lg border border-ink-100 px-3 py-2 text-sm"
+            className="input"
             placeholder="Référence à tester"
           />
           <button
             type="submit"
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-primary"
             disabled={!reference.trim() || lookup.isPending}
           >
             {lookup.isPending ? "Lookup…" : "Tester"}
@@ -202,7 +202,7 @@ function Sandbox() {
         </div>
       </div>
 
-      <div className="glass-panel p-4 space-y-3">
+      <div className="panel space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-900">4. Requête libre Axonaut (via core)</h3>
           <span className="pill bg-ink-100 text-ink-700">Headers userApiKey auto</span>
@@ -214,7 +214,7 @@ function Sandbox() {
               <input
                 value={testUrl}
                 onChange={(e) => setTestUrl(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 text-sm"
+                className="mt-1 input"
                 placeholder="https://axonaut.com/api/v2/products"
               />
             </label>
@@ -223,7 +223,7 @@ function Sandbox() {
               <select
                 value={testMethod}
                 onChange={(e) => setTestMethod(e.target.value as "GET" | "POST" | "PATCH")}
-                className="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 text-sm"
+                className="mt-1 input"
               >
                 <option value="GET">GET</option>
                 <option value="POST">POST</option>
@@ -237,7 +237,7 @@ function Sandbox() {
               <textarea
                 value={testBody}
                 onChange={(e) => setTestBody(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 text-sm font-mono"
+                className="mt-1 input font-mono"
                 rows={4}
               />
             </label>
@@ -245,7 +245,7 @@ function Sandbox() {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+              className="btn btn-primary"
               disabled={testRequest.isPending || !testUrl.trim()}
             >
               {testRequest.isPending ? "Envoi…" : "Envoyer"}

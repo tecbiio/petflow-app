@@ -60,7 +60,7 @@ function HusseSync() {
   return (
     <div className="space-y-4">
       <PageHeader title="Husse" subtitle="Session et récupération de pages (debug)." />
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-ink-900">Session Husse</h2>
           <span className="pill bg-brand-50 text-brand-700">Cookie en mémoire côté core</span>
@@ -71,7 +71,7 @@ function HusseSync() {
             <input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+              className="mt-1 input"
               placeholder="https://order.husse.fr/"
             />
           </label>
@@ -81,7 +81,7 @@ function HusseSync() {
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
                 type="email"
               />
             </label>
@@ -90,7 +90,7 @@ function HusseSync() {
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
                 type="password"
               />
             </label>
@@ -99,7 +99,7 @@ function HusseSync() {
             {message ? <p className="text-xs text-ink-600">{message}</p> : <p className="text-xs text-ink-500">POST /husse/login – récupère Set-Cookie et le réutilise sur /husse/fetch</p>}
             <button
               type="submit"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+              className="btn btn-primary"
               disabled={login.isPending}
             >
               {login.isPending ? "Connexion…" : "Se connecter"}
@@ -108,7 +108,7 @@ function HusseSync() {
         </form>
       </div>
 
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-900">Récupérer des pages produits</h3>
           <span className="pill bg-ink-100 text-ink-700">POST /husse/fetch</span>
@@ -119,7 +119,7 @@ function HusseSync() {
             <textarea
               value={urlTextarea}
               onChange={(e) => setUrlTextarea(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 font-mono text-xs"
+              className="mt-1 input font-mono text-xs"
               rows={6}
               placeholder="https://order.husse.fr/produits/xxx"
             />
@@ -128,7 +128,7 @@ function HusseSync() {
             <p className="text-xs text-ink-500">Le core renvoie les HTML (pas de parsage côté front pour l’instant).</p>
             <button
               type="submit"
-              className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+              className="btn btn-secondary"
               disabled={fetchPages.isPending}
             >
               {fetchPages.isPending ? "Récupération…" : "Récupérer"}

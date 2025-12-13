@@ -12,6 +12,7 @@ import SearchSelect from "../components/SearchSelect";
 import Modal from "../components/ui/Modal";
 import { useToast } from "../components/ToastProvider";
 import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
 
 function Products() {
   const queryClient = useQueryClient();
@@ -42,6 +43,7 @@ function Products() {
     setFamilyFilter("");
     setSubFamilyFilter("");
   };
+  const hasActiveFilters = Boolean(search.trim() || !activeOnly || familyFilter || subFamilyFilter);
 
   const stockQueries = useQueries({
     queries:
@@ -214,31 +216,34 @@ function Products() {
               setFormMessage(null);
               setShowCreateModal(true);
             }}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-primary"
           >
             Nouveau produit
           </button>
         }
       />
 
-      <div className="glass-panel space-y-3 p-4">
+      <div className="panel space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filtrer par nom ou SKU…"
-            className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm md:w-64"
+            className="input md:w-64"
           />
           <button
             type="button"
             onClick={() => setActiveOnly((prev) => !prev)}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-              activeOnly ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700"
-            }`}
+            className={["btn", activeOnly ? "btn-secondary" : "btn-outline"].join(" ")}
           >
             {activeOnly ? "Actifs" : "Tous"}
           </button>
+          {hasActiveFilters ? (
+            <button type="button" onClick={resetFilters} className="btn btn-muted">
+              Réinitialiser
+            </button>
+          ) : null}
           <span className="ml-auto text-sm font-semibold text-ink-700">{filtered.length} résultats</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -249,9 +254,7 @@ function Products() {
               setFamilyFilter("");
               setSubFamilyFilter("");
             }}
-            className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-              !familyFilter ? "bg-ink-900 text-white shadow-card" : "text-ink-700 hover:bg-ink-50"
-            }`}
+            className={["btn btn-sm", !familyFilter ? "btn-secondary" : "btn-outline"].join(" ")}
           >
             Toutes
           </button>
@@ -263,11 +266,7 @@ function Products() {
                 setFamilyFilter(family);
                 setSubFamilyFilter("");
               }}
-              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                familyFilter === family
-                  ? "bg-ink-900 text-white shadow-card"
-                  : "text-ink-700 hover:bg-ink-50"
-              }`}
+              className={["btn btn-sm", familyFilter === family ? "btn-secondary" : "btn-outline"].join(" ")}
             >
               {family}
             </button>
@@ -279,11 +278,7 @@ function Products() {
             <button
               type="button"
               onClick={() => setSubFamilyFilter("")}
-              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                !subFamilyFilter
-                  ? "bg-ink-900 text-white shadow-card"
-                  : "text-ink-700 hover:bg-ink-50"
-              }`}
+              className={["btn btn-sm", !subFamilyFilter ? "btn-secondary" : "btn-outline"].join(" ")}
             >
               Toutes
             </button>
@@ -292,11 +287,7 @@ function Products() {
                 key={sub}
                 type="button"
                 onClick={() => setSubFamilyFilter(sub)}
-                className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                  subFamilyFilter === sub
-                    ? "bg-ink-900 text-white shadow-card"
-                    : "text-ink-700 hover:bg-ink-50"
-                }`}
+                className={["btn btn-sm", subFamilyFilter === sub ? "btn-secondary" : "btn-outline"].join(" ")}
               >
                 {sub}
               </button>
@@ -305,20 +296,46 @@ function Products() {
         ) : null}
       </div>
       {isLoading ? <p className="text-sm text-ink-500">Chargement…</p> : null}
-      <div className="grid gap-3 md:grid-cols-2">
-        {filtered.map((product) => {
-          const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.stock ?? 0;
-          const hasInventory = (inventoriesByProduct.get(product.id)?.length ?? 0) > 0;
-          return (
-            <ProductCard
-              key={product.id}
-              product={product}
-              stock={stock}
-              inventoryMissing={!hasInventory}
-            />
-          );
-        })}
-      </div>
+      {!isLoading && filtered.length === 0 ? (
+        <EmptyState
+          title="Aucun produit"
+          description={hasActiveFilters ? "Essaie de réinitialiser les filtres." : "Commence par créer ton premier produit."}
+          action={
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {hasActiveFilters ? (
+                <button type="button" onClick={resetFilters} className="btn btn-muted">
+                  Réinitialiser
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setFormMessage(null);
+                  setShowCreateModal(true);
+                }}
+                className="btn btn-primary"
+              >
+                Nouveau produit
+              </button>
+            </div>
+          }
+        />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {filtered.map((product) => {
+            const stock = stockQueries[products.findIndex((p) => p.id === product.id)]?.data?.stock ?? 0;
+            const hasInventory = (inventoriesByProduct.get(product.id)?.length ?? 0) > 0;
+            return (
+              <ProductCard
+                key={product.id}
+                product={product}
+                stock={stock}
+                inventoryMissing={!hasInventory}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <Modal
         open={showCreateModal}
@@ -333,7 +350,7 @@ function Products() {
                     <input
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                      className="mt-1 input"
                       placeholder="Friandises saumon"
                     />
                   </label>
@@ -343,7 +360,7 @@ function Products() {
                       <input
                         value={newSku}
                         onChange={(e) => setNewSku(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        className="mt-1 input"
                         placeholder="SKU-123"
                       />
                     </label>
@@ -354,7 +371,7 @@ function Products() {
                         onChange={(e) => setNewTvaRate(e.target.value)}
                         type="number"
                         step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        className="mt-1 input"
                         placeholder="20"
                       />
                     </label>
@@ -368,7 +385,7 @@ function Products() {
                           onChange={(e) => setNewPriceVdi(e.target.value)}
                           type="number"
                           step="0.01"
-                          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                          className="input"
                           placeholder="8.50"
                         />
                         {priceVdiTtc > 0 ? (
@@ -384,7 +401,7 @@ function Products() {
                           onChange={(e) => setNewPriceDistributor(e.target.value)}
                           type="number"
                           step="0.01"
-                          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                          className="input"
                           placeholder="7.90"
                         />
                         {priceDistributorTtc > 0 ? (
@@ -400,7 +417,7 @@ function Products() {
                           onChange={(e) => setNewPriceSale(e.target.value)}
                           type="number"
                           step="0.01"
-                          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                          className="input"
                           placeholder="9.90"
                         />
                         {priceSaleTtc > 0 ? (
@@ -417,7 +434,7 @@ function Products() {
                         onChange={(e) => setNewPurchasePrice(e.target.value)}
                         type="number"
                         step="0.01"
-                        className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                        className="mt-1 input"
                         placeholder="6.20"
                       />
                     </label>
@@ -445,7 +462,7 @@ function Products() {
                     <textarea
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                      className="mt-1 input"
                       placeholder="Détail produit"
                     />
                   </label>
@@ -455,14 +472,14 @@ function Products() {
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(false)}
-                        className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="btn btn-muted"
                         disabled={createProduct.isPending}
                       >
                         Annuler
                       </button>
                       <button
                         type="submit"
-                        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+                        className="btn btn-primary"
                         disabled={createProduct.isPending}
                       >
                         {createProduct.isPending ? "Création…" : "Créer"}

@@ -80,7 +80,7 @@ function StockChart({ data, height = 180 }: Props) {
   const hoveredDate = hovered ? new Date(hovered.date).toLocaleString("fr-FR") : "";
 
   return (
-    <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+    <div className="card p-3">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -155,7 +155,7 @@ function StockChart({ data, height = 180 }: Props) {
                 zIndex: 9999,
               }}
             >
-              <div className="rounded-xl border border-ink-100 bg-white/95 px-3 py-2 shadow-lg">
+              <div className="anim-popover-in rounded-xl border border-ink-100 bg-white/95 px-3 py-2 shadow-lg">
                 <p className="text-xs font-semibold text-ink-900">{hovered.quantity} unités</p>
                 <p className="text-[11px] text-ink-600">{hoveredDate}</p>
               </div>

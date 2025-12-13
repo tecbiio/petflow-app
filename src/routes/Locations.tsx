@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import Modal from "../components/ui/Modal";
 import { useToast } from "../components/ToastProvider";
 import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
 
 function Locations() {
   const queryClient = useQueryClient();
@@ -18,6 +19,7 @@ function Locations() {
   const [isDefault, setIsDefault] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const hasActiveFilters = Boolean(search.trim() || !activeOnly);
 
   const createLocation = useMutation({
     mutationFn: api.createStockLocation,
@@ -76,73 +78,117 @@ function Locations() {
               setMessage(null);
               setShowCreateModal(true);
             }}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-primary"
           >
             Nouvel emplacement
           </button>
         }
       />
 
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="panel flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nom ou code"
-            className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm shadow-sm md:w-72"
+            className="input md:w-72"
           />
           <button
             type="button"
-          onClick={() => setActiveOnly((prev) => !prev)}
-          className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-            activeOnly ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700"
-          }`}
-        >
-          {activeOnly ? "Actifs" : "Tous"}
-        </button>
+            onClick={() => setActiveOnly((prev) => !prev)}
+            className={["btn", activeOnly ? "btn-secondary" : "btn-outline"].join(" ")}
+          >
+            {activeOnly ? "Actifs" : "Tous"}
+          </button>
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setActiveOnly(true);
+              }}
+              className="btn btn-muted"
+            >
+              Réinitialiser
+            </button>
+          ) : null}
         </div>
         <span className="text-sm font-semibold text-ink-700">{filtered.length} résultats</span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {filtered.map((loc) => (
-          <div
-            key={loc.id}
-            className={`glass-panel flex items-center justify-between rounded-xl border px-3 py-3 shadow-card ${
-              loc.isDefault ? "border-brand-200" : "border-ink-100"
-            }`}
-          >
-            <div>
-              <p className="text-sm font-semibold text-ink-900">{loc.name}</p>
-              <p className="text-xs text-ink-500">{loc.code || "—"}</p>
-              <p className="text-[11px] text-ink-500">
-                Statut : {loc.isActive ?? true ? "Actif" : "Inactif"}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
+      {filtered.length === 0 ? (
+        <EmptyState
+          title="Aucun emplacement"
+          description={
+            hasActiveFilters ? "Aucun résultat pour ces filtres." : "Crée un emplacement pour commencer."
+          }
+          action={
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {hasActiveFilters ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setActiveOnly(true);
+                  }}
+                  className="btn btn-muted"
+                >
+                  Réinitialiser
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => updateLocation.mutate({ id: loc.id, payload: { isDefault: true } })}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  loc.isDefault ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"
-                }`}
-                disabled={updateLocation.isPending}
+                onClick={() => {
+                  setMessage(null);
+                  setShowCreateModal(true);
+                }}
+                className="btn btn-primary"
               >
-                {loc.isDefault ? "Par défaut" : "Définir défaut"}
-              </button>
-              <button
-                type="button"
-                onClick={() => updateLocation.mutate({ id: loc.id, payload: { isActive: !(loc.isActive ?? true) } })}
-                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink-700 shadow-sm"
-                disabled={updateLocation.isPending}
-              >
-                {loc.isActive ?? true ? "Désactiver" : "Réactiver"}
+                Nouvel emplacement
               </button>
             </div>
-          </div>
-        ))}
-      </div>
+          }
+        />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {filtered.map((loc) => (
+            <div
+              key={loc.id}
+              className={[
+                "panel flex items-center justify-between gap-3",
+                loc.isDefault ? "border-brand-200" : "border-ink-100",
+              ].join(" ")}
+            >
+              <div>
+                <p className="text-sm font-semibold text-ink-900">{loc.name}</p>
+                <p className="text-xs text-ink-500">{loc.code || "—"}</p>
+                <p className="text-[11px] text-ink-500">
+                  Statut : {loc.isActive ?? true ? "Actif" : "Inactif"}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateLocation.mutate({ id: loc.id, payload: { isDefault: true } })}
+                  className={["btn btn-xs rounded-full", loc.isDefault ? "btn-primary" : "btn-muted"].join(" ")}
+                  disabled={updateLocation.isPending}
+                >
+                  {loc.isDefault ? "Par défaut" : "Définir défaut"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateLocation.mutate({ id: loc.id, payload: { isActive: !(loc.isActive ?? true) } })}
+                  className="btn btn-xs rounded-full btn-outline"
+                  disabled={updateLocation.isPending}
+                >
+                  {loc.isActive ?? true ? "Désactiver" : "Réactiver"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <Modal
         open={showCreateModal}
@@ -159,7 +205,7 @@ function Locations() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
                 placeholder="Entrepôt Paris"
               />
             </label>
@@ -168,7 +214,7 @@ function Locations() {
               <input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+                className="mt-1 input"
                 placeholder="PAR"
               />
             </label>
@@ -199,14 +245,14 @@ function Locations() {
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn btn-muted"
                 disabled={createLocation.isPending}
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn btn-primary"
                 disabled={createLocation.isPending}
               >
                 {createLocation.isPending ? "Création…" : "Créer"}

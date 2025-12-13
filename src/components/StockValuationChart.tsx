@@ -92,7 +92,7 @@ function StockValuationChart({ points, loading, locationLabel }: Props) {
         {legend}
       </div>
 
-      <div className="relative h-40 w-full overflow-hidden rounded-xl border border-ink-100 bg-white">
+      <div className="card relative h-40 w-full overflow-hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-ink-500">Chargement…</div>
         ) : normalized.length === 0 ? (

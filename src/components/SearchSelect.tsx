@@ -33,7 +33,7 @@ export function SearchSelect({
   }, [focused, anchor]);
 
   return (
-    <label className="text-sm text-ink-700">
+    <label className="block text-sm text-ink-700">
       {label}
       <div className="relative mt-1">
         <input
@@ -42,7 +42,7 @@ export function SearchSelect({
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 100)}
           ref={anchor.ref}
-          className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+          className="input"
           placeholder={placeholder}
         />
         {allowClear && valueId ? (
@@ -59,7 +59,7 @@ export function SearchSelect({
       {focused && search.trim() && anchor.rect
         ? createPortal(
             <div
-              className="z-[5500] max-h-48 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
+              className="z-[5500] anim-popover-in max-h-48 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"
               style={{
                 position: "fixed",
                 top: (anchor.rect?.bottom ?? 0) + 4,

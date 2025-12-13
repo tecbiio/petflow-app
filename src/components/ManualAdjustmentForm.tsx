@@ -87,7 +87,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
   };
 
   return (
-    <form className="glass-panel p-4" onSubmit={handleSubmit}>
+    <form className="panel" onSubmit={handleSubmit}>
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-ink-900">Ajustement manuel</p>
       </div>
@@ -100,7 +100,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
               setProductSearch("");
               setShowProductModal(true);
             }}
-            className="mt-1 flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left font-semibold text-ink-900"
+            className="mt-1 input flex items-center justify-between text-left font-semibold text-ink-900"
           >
             {products.find((p) => p.id === productId)?.name ?? "Choisir un produit"}
             <span className="text-xs text-ink-500">Rechercher…</span>
@@ -114,7 +114,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
               setLocationSearch("");
               setShowLocationModal(true);
             }}
-            className="mt-1 flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left font-semibold text-ink-900"
+            className="mt-1 input flex items-center justify-between text-left font-semibold text-ink-900"
           >
             {locations.find((l) => l.id === locationId)?.name ?? "Choisir un emplacement"}
             <span className="text-xs text-ink-500">Rechercher…</span>
@@ -126,7 +126,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            className="mt-1 input"
           />
         </label>
         <label className="text-sm text-ink-700">
@@ -134,7 +134,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
           <select
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            className="mt-1 input"
           >
             <option value="IN">Entrée</option>
             <option value="OUT">Sortie</option>
@@ -148,7 +148,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
           type="date"
           value={movementDate}
           onChange={(e) => setMovementDate(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+          className="mt-1 input"
         />
       </label>
       <label className="mt-3 block text-sm text-ink-700">
@@ -158,13 +158,13 @@ function ManualAdjustmentForm({ products, locations }: Props) {
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Commande client, casse, etc."
-          className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+          className="mt-1 input"
         />
       </label>
       <div className="mt-3 flex items-center justify-between gap-2">
         <button
           type="submit"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+          className="btn btn-primary"
           disabled={createMovement.isPending || products.length === 0 || locations.length === 0}
         >
           {createMovement.isPending ? "Envoi…" : "Créer le mouvement"}

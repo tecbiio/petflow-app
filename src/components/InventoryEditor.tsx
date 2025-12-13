@@ -79,21 +79,23 @@ function InventoryEditor({ products, locations }: Props) {
   };
 
   return (
-    <form className="glass-panel p-4" onSubmit={handleSubmit}>
+    <form className="panel" onSubmit={handleSubmit}>
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-ink-900">Inventaire {mode === "partial" ? "partiel" : "complet"}</p>
-        <div className="flex gap-2 text-xs font-semibold">
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setMode("partial")}
-            className={`rounded-full px-3 py-1 ${mode === "partial" ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
+            className={["btn btn-xs rounded-full", mode === "partial" ? "btn-primary" : "btn-muted"].join(" ")}
+            disabled={createInventory.isPending}
           >
             Partiel
           </button>
           <button
             type="button"
             onClick={() => setMode("full")}
-            className={`rounded-full px-3 py-1 ${mode === "full" ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
+            className={["btn btn-xs rounded-full", mode === "full" ? "btn-primary" : "btn-muted"].join(" ")}
+            disabled={createInventory.isPending}
           >
             Complet
           </button>
@@ -108,7 +110,7 @@ function InventoryEditor({ products, locations }: Props) {
               setProductSearch("");
               setShowProductModal(true);
             }}
-            className="mt-1 flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left font-semibold text-ink-900"
+            className="mt-1 input flex items-center justify-between text-left font-semibold text-ink-900"
           >
             {products.find((p) => p.id === productId)?.name ?? "Choisir un produit"}
             <span className="text-xs text-ink-500">Rechercher…</span>
@@ -122,7 +124,7 @@ function InventoryEditor({ products, locations }: Props) {
               setLocationSearch("");
               setShowLocationModal(true);
             }}
-            className="mt-1 flex w-full items-center justify-between rounded-lg border border-ink-100 bg-white px-3 py-2 text-left font-semibold text-ink-900"
+            className="mt-1 input flex items-center justify-between text-left font-semibold text-ink-900"
           >
             {locations.find((l) => l.id === locationId)?.name ?? "Choisir un emplacement"}
             <span className="text-xs text-ink-500">Rechercher…</span>
@@ -134,7 +136,7 @@ function InventoryEditor({ products, locations }: Props) {
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            className="mt-1 input"
           />
         </label>
       </div>
@@ -145,7 +147,7 @@ function InventoryEditor({ products, locations }: Props) {
             type="date"
             value={inventoryDate}
             onChange={(e) => setInventoryDate(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            className="mt-1 input"
           />
         </label>
         <label className="text-sm text-ink-700">
@@ -155,7 +157,7 @@ function InventoryEditor({ products, locations }: Props) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Cycle count, contrôle réception…"
-            className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2"
+            className="mt-1 input"
           />
         </label>
       </div>
@@ -166,7 +168,7 @@ function InventoryEditor({ products, locations }: Props) {
       <div className="mt-3 flex items-center justify-end gap-2">
         <button
           type="submit"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+          className="btn btn-primary"
           disabled={createInventory.isPending || products.length === 0 || locations.length === 0}
         >
           {createInventory.isPending ? "Envoi…" : "Enregistrer l'inventaire"}

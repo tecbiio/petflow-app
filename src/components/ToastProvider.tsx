@@ -1,6 +1,13 @@
 import { createContext, ReactNode, useCallback, useContext, useMemo, useRef, useState } from "react";
 
-type Toast = { id: number; message: string; tone?: "success" | "warning" | "info" | "error" };
+const TOAST_EXIT_MS = 160;
+
+type Toast = {
+  id: number;
+  message: string;
+  tone?: "success" | "warning" | "info" | "error";
+  state?: "enter" | "leave";
+};
 type ToastContextValue = { addToast: (message: string, tone?: Toast["tone"]) => void };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -8,25 +15,70 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const timersRef = useRef(new Map<number, number>());
+  const autoDismissTimersRef = useRef(new Map<number, number>());
+  const finalizeTimersRef = useRef(new Map<number, number>());
 
-  const removeToast = useCallback((id: number) => {
-    const timer = timersRef.current.get(id);
-    if (timer) {
-      window.clearTimeout(timer);
-      timersRef.current.delete(id);
+  const finalizeRemoveToast = useCallback((id: number) => {
+    const autoTimer = autoDismissTimersRef.current.get(id);
+    if (autoTimer) {
+      window.clearTimeout(autoTimer);
+      autoDismissTimersRef.current.delete(id);
     }
+
+    const finalizeTimer = finalizeTimersRef.current.get(id);
+    if (finalizeTimer) {
+      window.clearTimeout(finalizeTimer);
+      finalizeTimersRef.current.delete(id);
+    }
+
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const dismissToast = useCallback(
+    (id: number) => {
+      const autoTimer = autoDismissTimersRef.current.get(id);
+      if (autoTimer) {
+        window.clearTimeout(autoTimer);
+        autoDismissTimersRef.current.delete(id);
+      }
+
+      if (finalizeTimersRef.current.has(id)) return;
+
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, state: "leave" } : t)));
+
+      const finalizeTimer = window.setTimeout(() => finalizeRemoveToast(id), TOAST_EXIT_MS);
+      finalizeTimersRef.current.set(id, finalizeTimer);
+    },
+    [finalizeRemoveToast],
+  );
 
   const addToast = useCallback(
     (message: string, tone: Toast["tone"] = "info") => {
       const id = Date.now() + Math.random();
-      setToasts((prev) => [...prev, { id, message, tone }].slice(-4));
-      const timer = window.setTimeout(() => removeToast(id), 3500);
-      timersRef.current.set(id, timer);
+      setToasts((prev) => {
+        const next = [...prev, { id, message, tone, state: "enter" } satisfies Toast];
+        const trimmed = next.slice(-4);
+        const dropped = next.slice(0, Math.max(0, next.length - trimmed.length));
+
+        dropped.forEach((t) => {
+          const autoTimer = autoDismissTimersRef.current.get(t.id);
+          if (autoTimer) {
+            window.clearTimeout(autoTimer);
+            autoDismissTimersRef.current.delete(t.id);
+          }
+          const finalizeTimer = finalizeTimersRef.current.get(t.id);
+          if (finalizeTimer) {
+            window.clearTimeout(finalizeTimer);
+            finalizeTimersRef.current.delete(t.id);
+          }
+        });
+
+        return trimmed;
+      });
+      const timer = window.setTimeout(() => dismissToast(id), 3500);
+      autoDismissTimersRef.current.set(id, timer);
     },
-    [removeToast],
+    [dismissToast],
   );
 
   const value = useMemo(() => ({ addToast }), [addToast]);
@@ -39,9 +91,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             role="status"
-            onClick={() => removeToast(toast.id)}
+            onClick={() => dismissToast(toast.id)}
             className={[
               "cursor-pointer rounded-xl border px-3 py-2 text-sm shadow-card transition hover:-translate-y-0.5",
+              toast.state === "leave" ? "anim-toast-out pointer-events-none" : "anim-toast-in",
               toast.tone === "success" ? "border-emerald-100 bg-emerald-50 text-emerald-900" : "",
               toast.tone === "warning" ? "border-amber-100 bg-amber-50 text-amber-900" : "",
               toast.tone === "error" ? "border-rose-100 bg-rose-50 text-rose-900" : "",

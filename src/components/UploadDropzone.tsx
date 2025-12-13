@@ -101,7 +101,7 @@ function UploadDropzone({ stockLocationId }: Props) {
     <>
       <form
         onSubmit={handleParse}
-        className="glass-panel border-dashed border-2 border-brand-200 px-4 py-6 text-center space-y-3"
+        className="glass-panel space-y-3 border-2 border-dashed border-brand-200 px-4 py-6 text-center"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => handleDrop(e as unknown as React.DragEvent<HTMLDivElement>)}
       >
@@ -119,7 +119,7 @@ function UploadDropzone({ stockLocationId }: Props) {
                 setDocType(next);
                 setMovementSign(defaultSignForDoc(next));
               }}
-              className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
+              className="input !w-auto"
             >
               <option value="FACTURE">Facture</option>
               <option value="AVOIR">Avoir</option>
@@ -132,7 +132,7 @@ function UploadDropzone({ stockLocationId }: Props) {
             <select
               value={movementSign}
               onChange={(e) => setMovementSign(e.target.value as MovementSign)}
-              className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
+              className="input !w-auto"
             >
               <option value="IN">Entrée (+)</option>
               <option value="OUT">Sortie (-)</option>
@@ -144,14 +144,14 @@ function UploadDropzone({ stockLocationId }: Props) {
               type="date"
               value={createdAt ?? ""}
               onChange={(e) => setCreatedAt(e.target.value || undefined)}
-              className="rounded-lg border border-ink-100 px-3 py-2 text-sm"
+              className="input !w-auto"
             />
           </label>
           <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700">
             Emplacement #{stockLocationId}
           </span>
         </div>
-        <label className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
+        <label className="btn btn-primary mt-2 cursor-pointer">
           Parcourir…
           <input
             type="file"
@@ -165,7 +165,7 @@ function UploadDropzone({ stockLocationId }: Props) {
         <div className="flex justify-center">
           <button
             type="submit"
-            className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card"
+            className="btn btn-secondary"
             disabled={!file || parseMutation.isPending}
           >
             {parseMutation.isPending ? "Analyse…" : "Analyser"}

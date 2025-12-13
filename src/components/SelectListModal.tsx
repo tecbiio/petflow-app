@@ -61,7 +61,7 @@ function SelectListModal({
         value={search}
         onChange={(e) => onSearch(e.target.value)}
         placeholder="Recherche"
-        className="w-full rounded-lg border border-ink-100 px-3 py-2 text-sm"
+        className="input"
       />
       <div className="mt-3 max-h-80 space-y-2 overflow-auto">
         {filtered.length === 0 ? (
@@ -76,8 +76,8 @@ function SelectListModal({
                 onOpenChange(false);
               }}
               className={[
-                "flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm font-semibold text-ink-900 transition hover:bg-ink-50",
-                selectedId === opt.id ? "border-ink-900" : "border-ink-100",
+                "card flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold text-ink-900 transition hover:bg-ink-50",
+                selectedId === opt.id ? "border-ink-900" : "",
               ].join(" ")}
             >
               <span>

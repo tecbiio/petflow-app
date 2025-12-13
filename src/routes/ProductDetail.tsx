@@ -274,7 +274,7 @@ function ProductDetail() {
 
   if (isError) {
     return (
-      <div className="glass-panel p-4">
+      <div className="panel">
         <p className="text-sm text-ink-700">Produit introuvable ou inaccessible.</p>
         <p className="text-xs text-ink-500">{(productError as Error)?.message ?? ""}</p>
         <Link to="/products" className="mt-2 inline-block text-sm font-semibold text-brand-700 underline">
@@ -321,7 +321,7 @@ function ProductDetail() {
                   <input
                     value={editFields.name}
                     onChange={(e) => setEditFields((prev) => ({ ...prev, name: e.target.value }))}
-                    className="rounded-lg border border-ink-100 bg-white px-3 py-2 text-lg font-semibold text-ink-900"
+                    className="input text-lg font-semibold text-ink-900"
                     placeholder="Nom du produit"
                     required
                   />
@@ -329,7 +329,7 @@ function ProductDetail() {
                     value={editFields.sku}
                     readOnly
                     disabled
-                    className="rounded-lg border border-ink-100 bg-ink-50 px-3 py-2 text-sm text-ink-500"
+                    className="input bg-ink-50 text-ink-500"
                     placeholder="SKU"
                     title="Le SKU n'est pas modifiable"
                     required
@@ -342,7 +342,7 @@ function ProductDetail() {
                 <textarea
                   value={editFields.description}
                   onChange={(e) => setEditFields((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                  className="input"
                   rows={2}
                   placeholder="Description"
                 />
@@ -356,9 +356,7 @@ function ProductDetail() {
                 <button
                   type="button"
                   onClick={() => setEditMode(false)}
-                  className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                    !editMode ? "bg-ink-900 text-white shadow-card" : "bg-ink-100 text-ink-700"
-                  }`}
+                  className={["btn btn-xs", !editMode ? "btn-secondary" : "btn-muted"].join(" ")}
                 >
                   Consultation
                 </button>
@@ -391,9 +389,7 @@ function ProductDetail() {
                     }
                     setEditMode(true);
                   }}
-                  className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                    editMode ? "bg-ink-900 text-white shadow-card" : "bg-ink-100 text-ink-700"
-                  }`}
+                  className={["btn btn-xs", editMode ? "btn-secondary" : "btn-muted"].join(" ")}
                 >
                   Modification
                 </button>
@@ -410,7 +406,7 @@ function ProductDetail() {
                     setEditFields((prev) => ({ ...prev, isActive: next }));
                     saveProduct.mutate({ isActive: next });
                   }}
-                  className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700"
+                  className="btn btn-muted btn-sm"
                   title={product.isActive ?? true ? "Archiver le produit" : "Réactiver le produit"}
                 >
                   {product.isActive ?? true ? "Archiver" : "Réactiver"}
@@ -418,7 +414,7 @@ function ProductDetail() {
                 <button
                   type="button"
                   onClick={() => setShowMovementModal(true)}
-                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
+                  className="btn btn-primary"
                   disabled={locations.length === 0}
                 >
                   Ajuster / inventaire
@@ -428,7 +424,7 @@ function ProductDetail() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+            <div className="card p-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs uppercase tracking-wide text-ink-500">Catégorisation</p>
                 {!editMode && (product.family || product.subFamily) ? (
@@ -445,9 +441,7 @@ function ProductDetail() {
                         onClick={() =>
                           setEditFields((prev) => ({ ...prev, familyId: null, subFamilyId: null }))
                         }
-                        className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                          !editFields.familyId ? "bg-ink-900 text-white shadow-card" : "text-ink-700 hover:bg-ink-50"
-                        }`}
+                        className={["btn btn-sm", !editFields.familyId ? "btn-secondary" : "btn-outline"].join(" ")}
                       >
                         Aucune
                       </button>
@@ -462,11 +456,7 @@ function ProductDetail() {
                               subFamilyId: prev.familyId === opt.id ? prev.subFamilyId : null,
                             }))
                           }
-                          className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                            editFields.familyId === opt.id
-                              ? "bg-ink-900 text-white shadow-card"
-                              : "text-ink-700 hover:bg-ink-50"
-                          }`}
+                          className={["btn btn-sm", editFields.familyId === opt.id ? "btn-secondary" : "btn-outline"].join(" ")}
                         >
                           {opt.name}
                         </button>
@@ -478,11 +468,7 @@ function ProductDetail() {
                         <button
                           type="button"
                           onClick={() => setEditFields((prev) => ({ ...prev, subFamilyId: null }))}
-                          className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                            !editFields.subFamilyId
-                              ? "bg-ink-900 text-white shadow-card"
-                              : "text-ink-700 hover:bg-ink-50"
-                          }`}
+                          className={["btn btn-sm", !editFields.subFamilyId ? "btn-secondary" : "btn-outline"].join(" ")}
                         >
                           Aucune
                         </button>
@@ -493,11 +479,7 @@ function ProductDetail() {
                               key={opt.id}
                               type="button"
                               onClick={() => setEditFields((prev) => ({ ...prev, subFamilyId: opt.id }))}
-                              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                                editFields.subFamilyId === opt.id
-                                  ? "bg-ink-900 text-white shadow-card"
-                                  : "text-ink-700 hover:bg-ink-50"
-                              }`}
+                              className={["btn btn-sm", editFields.subFamilyId === opt.id ? "btn-secondary" : "btn-outline"].join(" ")}
                             >
                               {subFamilyNameMap.get(opt.id) ?? opt.id}
                             </button>
@@ -522,7 +504,7 @@ function ProductDetail() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm space-y-2">
+            <div className="card p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs uppercase tracking-wide text-ink-500">Logistique & TVA</p>
                 <span className="text-xs text-ink-400">HT + rappel TTC</span>
@@ -536,7 +518,7 @@ function ProductDetail() {
                       step="0.01"
                       value={editFields.purchasePrice}
                       onChange={(e) => setEditFields((prev) => ({ ...prev, purchasePrice: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                      className="mt-1 input"
                       required
                     />
                   ) : (
@@ -551,7 +533,7 @@ function ProductDetail() {
                       step="0.01"
                       value={editFields.tvaRate}
                       onChange={(e) => setEditFields((prev) => ({ ...prev, tvaRate: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                      className="mt-1 input"
                       required
                     />
                   ) : (
@@ -592,7 +574,7 @@ function ProductDetail() {
               <p className="text-xs text-ink-500">TTC calculé automatiquement</p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+              <div className="card p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs uppercase tracking-wide text-ink-500">Tarif VDI</p>
                   {priceVdiTtc > 0 ? <span className="text-[11px] text-ink-500">TTC {priceVdiTtc.toFixed(2)} €</span> : null}
@@ -603,14 +585,14 @@ function ProductDetail() {
                     step="0.01"
                     value={editFields.priceVdiHt}
                     onChange={(e) => setEditFields((prev) => ({ ...prev, priceVdiHt: e.target.value }))}
-                    className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    className="mt-2 input"
                     required
                   />
                 ) : (
                   <p className="mt-2 text-sm font-semibold text-ink-900">{formatHtValue(displayPriceVdiHt)}</p>
                 )}
               </div>
-              <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+              <div className="card p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs uppercase tracking-wide text-ink-500">Tarif Distributeur</p>
                   {priceDistributorTtc > 0 ? (
@@ -623,14 +605,14 @@ function ProductDetail() {
                     step="0.01"
                     value={editFields.priceDistributorHt}
                     onChange={(e) => setEditFields((prev) => ({ ...prev, priceDistributorHt: e.target.value }))}
-                    className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    className="mt-2 input"
                     required
                   />
                 ) : (
                   <p className="mt-2 text-sm font-semibold text-ink-900">{formatHtValue(displayPriceDistributorHt)}</p>
                 )}
               </div>
-              <div className="rounded-xl border border-ink-100 bg-white p-3 shadow-sm">
+              <div className="card p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs uppercase tracking-wide text-ink-500">Prix de vente</p>
                   {priceSaleTtc > 0 ? <span className="text-[11px] text-ink-500">TTC {priceSaleTtc.toFixed(2)} €</span> : null}
@@ -643,7 +625,7 @@ function ProductDetail() {
                     onChange={(e) =>
                       setEditFields((prev) => ({ ...prev, priceSaleHt: e.target.value, price: e.target.value }))
                     }
-                    className="mt-2 w-full rounded-lg border border-ink-100 bg-white px-3 py-2 text-sm"
+                    className="mt-2 input"
                     required
                   />
                 ) : (
@@ -657,7 +639,7 @@ function ProductDetail() {
             <div className="flex items-center justify-end">
               <button
                 type="submit"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
+                className="btn btn-primary"
                 disabled={saveProduct.isPending}
               >
                 {saveProduct.isPending ? "Enregistrement…" : "Enregistrer"}
@@ -667,7 +649,7 @@ function ProductDetail() {
         </form>
         {message ? <p className="mt-2 text-xs text-ink-600">{message}</p> : null}
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
+          <div className="card p-3">
             <p className="text-xs text-ink-500">Stock actuel</p>
             <div className="mt-1 flex items-center justify-between">
               <p className="text-lg font-semibold text-ink-900">{stockQuantity} unités</p>
@@ -675,7 +657,7 @@ function ProductDetail() {
             </div>
             <p className="text-xs text-ink-500">Synchronisé via mouvements et inventaires.</p>
           </div>
-          <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
+          <div className="card p-3">
             <p className="text-xs text-ink-500">Dernier inventaire</p>
             <p className="text-lg font-semibold text-ink-900">
               {inventories[0]?.quantity ?? "—"} unités
@@ -684,7 +666,7 @@ function ProductDetail() {
               {inventories[0] ? new Date(inventories[0].createdAt).toLocaleString("fr-FR") : "Aucun inventaire"}
             </p>
           </div>
-          <div className="rounded-xl bg-white px-3 py-3 shadow-sm">
+          <div className="card p-3">
             <p className="text-xs text-ink-500">Emplacement par défaut</p>
             <p className="text-lg font-semibold text-ink-900">
               {locations.find((l) => l.isDefault)?.name ?? "Non défini"}
@@ -697,7 +679,7 @@ function ProductDetail() {
       {formError ? <p className="text-xs text-amber-700">{formError}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="glass-panel p-4">
+        <div className="panel">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-ink-900">Mouvements</h3>
           </div>
@@ -706,7 +688,7 @@ function ProductDetail() {
           </div>
         </div>
 
-        <div className="glass-panel p-4">
+        <div className="panel">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-ink-900">Variations</h3>
           </div>
@@ -715,7 +697,7 @@ function ProductDetail() {
               <p className="text-sm text-ink-600">Aucune variation.</p>
             ) : (
               variations.map((variation) => (
-                <div key={variation.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 shadow-sm">
+                <div key={variation.id} className="card flex items-center justify-between px-3 py-2">
                   <div>
                     <p className="text-sm font-semibold text-ink-900">
                       {variation.quantityDelta > 0 ? "+" : ""}
@@ -731,7 +713,7 @@ function ProductDetail() {
         </div>
       </div>
 
-      <div className="glass-panel p-4">
+      <div className="panel">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-ink-900">Inventaires</h3>
         </div>
@@ -740,7 +722,7 @@ function ProductDetail() {
             <p className="text-sm text-ink-600">Aucun inventaire pour ce produit.</p>
           ) : (
             inventories.map((inv) => (
-              <div key={inv.id} className="rounded-lg bg-white px-3 py-2 shadow-sm">
+              <div key={inv.id} className="card px-3 py-2">
                 <p className="text-sm font-semibold text-ink-900">
                   {inv.quantity} unités
                 </p>

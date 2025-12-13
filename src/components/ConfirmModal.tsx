@@ -41,7 +41,7 @@ function ConfirmModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-muted"
             disabled={cancelDisabled}
           >
             {cancelLabel}
@@ -49,7 +49,7 @@ function ConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary"
             disabled={confirmDisabled}
           >
             {confirmLabel}

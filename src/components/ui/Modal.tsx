@@ -1,7 +1,8 @@
-import { ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import { ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 let openModalCount = 0;
+const EXIT_ANIMATION_MS = 160;
 
 const lockBodyScroll = () => {
   openModalCount += 1;
@@ -63,10 +64,17 @@ function Modal({
   closeOnEscape = true,
   initialFocusRef,
 }: Props) {
+  const [present, setPresent] = useState(open);
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const openRef = useRef(open);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   const maxWidthClass = useMemo(() => {
     switch (size) {
@@ -84,13 +92,38 @@ function Modal({
   }, [size]);
 
   useEffect(() => {
-    if (!open) return;
+    if (open) {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setPresent(true);
+      return;
+    }
+
+    if (!present || closeTimerRef.current) return;
+
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      setPresent(false);
+    }, EXIT_ANIMATION_MS);
+
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
+  }, [open, present]);
+
+  useEffect(() => {
+    if (!present) return;
 
     previouslyFocused.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     lockBodyScroll();
 
     const focusTimer = window.setTimeout(() => {
-      if (!open) return;
+      if (!openRef.current) return;
       if (initialFocusRef?.current) {
         initialFocusRef.current.focus();
         return;
@@ -110,17 +143,19 @@ function Modal({
         previouslyFocused.current.focus();
       }
     };
-  }, [initialFocusRef, open]);
+  }, [initialFocusRef, present]);
 
-  if (!open) return null;
+  if (!present) return null;
 
   const labelledBy = title ? titleId : undefined;
   const describedBy = description ? descriptionId : undefined;
+  const isClosing = !open;
 
   return createPortal(
     <div
       className={[
         "fixed inset-0 z-[5000] flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4",
+        isClosing ? "anim-overlay-out" : "anim-overlay-in",
         overlayClassName,
       ]
         .filter(Boolean)
@@ -139,6 +174,7 @@ function Modal({
         tabIndex={-1}
         className={[
           "flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-2xl outline-none",
+          isClosing ? "anim-modal-out" : "anim-modal-in",
           maxWidthClass,
           className,
         ]
@@ -194,7 +230,7 @@ function Modal({
             <button
               type="button"
               onClick={() => (canClose ? onOpenChange(false) : null)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-100 text-lg font-semibold text-ink-700 transition hover:bg-ink-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn btn-icon btn-muted text-lg"
               aria-label="Fermer"
               title="Fermer"
               disabled={!canClose}
