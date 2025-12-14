@@ -27,6 +27,8 @@ function Settings() {
   const [newPackagingName, setNewPackagingName] = useState("");
   const [editingPackagingId, setEditingPackagingId] = useState<number | null>(null);
   const [editingPackagingName, setEditingPackagingName] = useState("");
+  const [axonautSyncIds, setAxonautSyncIds] = useState("");
+  const [axonautSyncResult, setAxonautSyncResult] = useState<unknown>(null);
 
   const axonautConfig = useQuery({
     queryKey: ["axonaut-config"],
@@ -100,6 +102,47 @@ function Settings() {
       queryClient.invalidateQueries({ queryKey: ["packagings"] });
       queryClient.invalidateQueries({ queryKey: ["families"] });
       queryClient.invalidateQueries({ queryKey: ["sub-families"] });
+    },
+    onError: (err: Error) => toast(err.message, "error"),
+  });
+
+  const syncAxonautStock = useMutation({
+    mutationFn: () => {
+      const ids = axonautSyncIds
+        .split(/[\s,;]+/g)
+        .map((v) => Number(v))
+        .filter((v) => Number.isInteger(v) && v > 0);
+      if (ids.length === 0) {
+        throw new Error("Renseignez au moins un id produit (entier positif).");
+      }
+      setAxonautSyncResult(null);
+      return api.axonautSyncStock({ productIds: ids });
+    },
+    onSuccess: (res) => {
+      setAxonautSyncResult(res);
+      toast(`Synchro stock Axonaut : ${res.updated} OK · ${res.skipped} ignorés`, "success");
+    },
+    onError: (err: Error) => toast(err.message, "error"),
+  });
+
+  const syncAxonautStockAllLinked = useMutation({
+    mutationFn: async () => {
+      const products = await api.listProducts();
+      const ids = products
+        .filter((p) => p.axonautProductId !== null && p.axonautProductId !== undefined)
+        .map((p) => p.id);
+      if (ids.length === 0) {
+        throw new Error("Aucun produit lié à Axonaut (axonautProductId manquant).");
+      }
+      setAxonautSyncResult(null);
+      return api.axonautSyncStock({ productIds: ids });
+    },
+    onSuccess: (res) => {
+      setAxonautSyncResult(res);
+      toast(
+        `Synchro stock Axonaut (tous les produits liés) : ${res.updated} OK · ${res.skipped} ignorés`,
+        "success",
+      );
     },
     onError: (err: Error) => toast(err.message, "error"),
   });
@@ -280,6 +323,44 @@ function Settings() {
           </button>
           {!axonautConfig.data?.hasApiKey ? (
             <span className="text-xs text-amber-700">Ajoutez une clé Axonaut pour activer l'import.</span>
+          ) : null}
+        </div>
+
+        <div className="mt-4 border-t border-ink-100 pt-4">
+          <h4 className="text-sm font-semibold text-ink-900">Synchroniser le stock vers Axonaut</h4>
+          <p className="mt-1 text-xs text-ink-600">
+            Met à jour le stock Axonaut à partir du stock calculé dans Petflow (ids produits séparés par virgule/espace).
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={axonautSyncIds}
+              onChange={(e) => setAxonautSyncIds(e.target.value)}
+              className="input flex-1"
+              placeholder="Ex: 12, 15, 32"
+            />
+            <button
+              type="button"
+              onClick={() => syncAxonautStock.mutate()}
+              className="btn btn-secondary"
+              disabled={syncAxonautStock.isPending || axonautConfig.data?.hasApiKey !== true}
+              title={axonautConfig.data?.hasApiKey !== true ? "Ajoutez une clé Axonaut pour activer." : undefined}
+            >
+              {syncAxonautStock.isPending ? "Synchro…" : "Synchroniser"}
+            </button>
+            <button
+              type="button"
+              onClick={() => syncAxonautStockAllLinked.mutate()}
+              className="btn btn-outline"
+              disabled={syncAxonautStockAllLinked.isPending || axonautConfig.data?.hasApiKey !== true}
+              title={axonautConfig.data?.hasApiKey !== true ? "Ajoutez une clé Axonaut pour activer." : undefined}
+            >
+              {syncAxonautStockAllLinked.isPending ? "Synchro…" : "Tout synchroniser"}
+            </button>
+          </div>
+          {axonautSyncResult ? (
+            <div className="mt-3 rounded-lg border border-ink-100 bg-ink-50 p-3 text-xs text-ink-700">
+              <pre className="whitespace-pre-wrap break-all">{JSON.stringify(axonautSyncResult, null, 2)}</pre>
+            </div>
           ) : null}
         </div>
       </div>

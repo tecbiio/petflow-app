@@ -17,5 +17,15 @@ Interface React 18 + Vite + Tailwind pour piloter les produits, stocks, mouvemen
 - Authentification via les comptes créés dans la base master (`npm run tenants:bootstrap` côté core).
 - Familles/sous-familles/conditionnements et produits proviennent de la base applicative du tenant.
 
+## Axonaut
+- Renseigner la clé API dans `Réglages` (poussée au core).
+- Importer le catalogue produits via `Réglages` → "Importer les produits depuis Axonaut".
+- Synchroniser le stock vers Axonaut :
+  - depuis une fiche produit (bouton "Mettre à jour le stock Axonaut")
+  - ou en masse via `Réglages` → "Synchroniser le stock vers Axonaut" (ids produits ou “Tout synchroniser” pour tous les produits liés).
+- Importer des factures Axonaut :
+  - synchro automatique à chaque connexion (factures ajoutées dans la liste “à importer”)
+  - page `Documents` → "Importer des factures Axonaut" (sélection, prévisualisation, import unitaire ou import complet).
+
 ## Docker
 - Via la racine du repo : `docker-compose up --build petflow-app` (dépend de `petflow-core` et `pdf2json` déjà lancés ou dans le même `up`).

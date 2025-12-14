@@ -8,6 +8,7 @@ export type AppSettings = {
   axonautApiKey?: string;
   axonautUpdateTemplate?: string;
   axonautLookupTemplate?: string;
+  axonautAutoSyncInvoices?: boolean;
   themeColor?: string;
 };
 

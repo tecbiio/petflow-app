@@ -1,4 +1,6 @@
 import {
+  AxonautInvoiceLines,
+  AxonautInvoiceSummary,
   DocumentType,
   Family,
   Inventory,
@@ -370,6 +372,30 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  axonautSyncStock: (payload: { productIds: number[]; reason?: string; dryRun?: boolean }): Promise<{
+    requested: number;
+    found: number;
+    missing: number[];
+    updated: number;
+    skipped: number;
+    results: Array<{
+      productId: number;
+      sku?: string;
+      name?: string;
+      axonautProductId?: number | null;
+      stock?: number;
+      ok: boolean;
+      skipped?: boolean;
+      error?: string;
+      axonaut?: unknown;
+    }>;
+  }> =>
+    fetchJson("/axonaut/sync-stock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
   axonautGetConfig: (): Promise<{
     hasApiKey: boolean;
     baseUrl?: string;
@@ -408,6 +434,58 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  axonautListInvoices: (params?: { limit?: number; from?: string; to?: string }): Promise<{
+    total?: number;
+    pages?: number;
+    perPage?: number;
+    fetched: number;
+    returned: number;
+    invoices: AxonautInvoiceSummary[];
+  }> => {
+    const search = new URLSearchParams();
+    if (params?.limit) search.set("limit", String(params.limit));
+    if (params?.from) search.set("from", params.from);
+    if (params?.to) search.set("to", params.to);
+    const qs = search.toString();
+    return fetchJson(`/axonaut/invoices${qs ? `?${qs}` : ""}`);
+  },
+
+  axonautGetInvoiceLines: (invoiceId: string): Promise<AxonautInvoiceLines> =>
+    fetchJson(`/axonaut/invoices/${encodeURIComponent(invoiceId)}/lines`),
+
+  axonautSyncInvoices: (payload?: { lookbackDays?: number; force?: boolean }): Promise<{
+    ok: boolean;
+    skipped?: boolean;
+    reason?: "QUOTA" | "TOO_RECENT";
+    blockedUntil?: string | null;
+    lastSyncAtBefore: string | null;
+    lastSyncAtAfter: string | null;
+    fetched: number;
+    added: number;
+    updated: number;
+    pending: number;
+    invoices: AxonautInvoiceSummary[];
+  }> =>
+    fetchJson("/axonaut/invoices/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload ?? {}),
+    }),
+
+  axonautPendingInvoices: (): Promise<{
+    lastSyncAt: string | null;
+    blockedUntil: string | null;
+    pending: number;
+    invoices: AxonautInvoiceSummary[];
+  }> => fetchJson("/axonaut/invoices/pending"),
+
+  axonautMarkInvoicesImported: (invoiceIds: Array<string | number>): Promise<{ ok: boolean; removed: number; remaining: number }> =>
+    fetchJson("/axonaut/invoices/mark-imported", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceIds: invoiceIds.map(String) }),
+    }),
+
   parseDocument: (file: File, docType: DocumentType): Promise<DocumentParseResult> => {
     const form = new FormData();
     form.append("file", file);
@@ -430,6 +508,7 @@ export const api = {
     skipped: { reference: string; reason: string }[];
     productsCreated?: number;
     productsLinked?: number;
+    alreadyImported?: boolean;
   }> =>
     fetchJson("/documents/ingest", {
       method: "POST",

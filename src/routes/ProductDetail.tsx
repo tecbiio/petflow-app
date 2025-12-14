@@ -64,6 +64,10 @@ function ProductDetail() {
   const { data: inventories = [] } = useInventoriesByProduct(productNumericId);
   const { data: locations = [] } = useStockLocations();
   const { data: packagings = [] } = usePackagings();
+  const axonautConfig = useQuery({
+    queryKey: ["axonaut-config"],
+    queryFn: () => api.axonautGetConfig(),
+  });
   const [showMovementModal, setShowMovementModal] = useState(false);
   const hasInventory = inventories.length > 0;
   const computeTtcValue = (ht: number, rate: number) => {
@@ -225,6 +229,21 @@ function ProductDetail() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (error: Error) => setFormError(error.message),
+  });
+
+  const syncAxonautStock = useMutation({
+    mutationFn: () => api.axonautSyncStock({ productIds: [productNumericId] }),
+    onSuccess: (res) => {
+      const result = res.results?.[0];
+      if (result?.ok) {
+        setMessage(
+          `Stock Axonaut mis à jour (produit #${productNumericId} → ${result.stock ?? "?"}).`,
+        );
+      } else {
+        setMessage(result?.error ?? "Synchronisation Axonaut incomplète.");
+      }
+    },
+    onError: (error: Error) => setMessage(error.message),
   });
 
   const handleSaveProduct = (event: FormEvent) => {
@@ -426,6 +445,37 @@ function ProductDetail() {
                   disabled={locations.length === 0}
                 >
                   Ajuster / inventaire
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-ink-100 bg-white p-3 text-left">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-ink-800">Axonaut</p>
+                  {product.axonautProductId ? (
+                    <span className="pill bg-ink-100 text-ink-700">#{product.axonautProductId}</span>
+                  ) : (
+                    <span className="text-xs text-ink-400">Non lié</span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-ink-600">
+                  Stock envoyé : <span className="font-semibold text-ink-800">{stockQuantity}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => syncAxonautStock.mutate()}
+                  className="btn btn-outline btn-sm mt-2 w-full"
+                  disabled={
+                    syncAxonautStock.isPending ||
+                    !product.axonautProductId ||
+                    axonautConfig.data?.hasApiKey !== true
+                  }
+                  title={
+                    axonautConfig.data?.hasApiKey !== true
+                      ? "Ajoutez une clé Axonaut dans les réglages."
+                      : undefined
+                  }
+                >
+                  {syncAxonautStock.isPending ? "Mise à jour Axonaut…" : "Mettre à jour le stock Axonaut"}
                 </button>
               </div>
             </div>

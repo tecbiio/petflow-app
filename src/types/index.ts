@@ -98,3 +98,17 @@ export type ParsedDocumentLine = {
 };
 
 export type MovementSign = "IN" | "OUT";
+
+export type AxonautInvoiceSummary = {
+  id: string | number;
+  number?: string;
+  date?: string;
+  customerName?: string;
+  status?: string;
+  total?: number;
+};
+
+export type AxonautInvoiceLines = {
+  invoice: AxonautInvoiceSummary;
+  lines: ParsedDocumentLine[];
+};
