@@ -479,6 +479,20 @@ export const api = {
     invoices: AxonautInvoiceSummary[];
   }> => fetchJson("/axonaut/invoices/pending"),
 
+  axonautClearPendingInvoices: (payload?: { advanceLastSyncAt?: boolean }): Promise<{
+    ok: boolean;
+    cleared: number;
+    lastSyncAtAfter: string | null;
+    blockedUntil: string | null;
+    pending: number;
+    invoices: AxonautInvoiceSummary[];
+  }> =>
+    fetchJson("/axonaut/invoices/clear-pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload ?? {}),
+    }),
+
   axonautMarkInvoicesImported: (invoiceIds: Array<string | number>): Promise<{ ok: boolean; removed: number; remaining: number }> =>
     fetchJson("/axonaut/invoices/mark-imported", {
       method: "POST",

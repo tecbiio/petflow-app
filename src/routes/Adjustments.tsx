@@ -85,12 +85,15 @@ function Adjustments() {
   });
 
   const previewInvoices = useMutation({
-    mutationFn: async () => {
-      const ids = Array.from(selectedInvoiceIds.values());
+    mutationFn: async (invoiceIds: string[]) => {
+      const ids = Array.from(new Set((invoiceIds ?? []).map(String))).filter(Boolean);
       if (ids.length === 0) {
         throw new Error("Sélectionnez au moins une facture Axonaut.");
       }
-      const previews = await Promise.all(ids.map((id) => api.axonautGetInvoiceLines(id)));
+      const previews: AxonautInvoiceLines[] = [];
+      for (const id of ids) {
+        previews.push(await api.axonautGetInvoiceLines(id));
+      }
       return previews;
     },
     onSuccess: (res) => {
@@ -198,6 +201,13 @@ function Adjustments() {
   const lastSyncAt = pendingInvoicesQuery.data?.lastSyncAt;
   const blockedUntil = pendingInvoicesQuery.data?.blockedUntil ?? null;
 
+  const startInvoicePreview = (invoiceIds: string[]) => {
+    const ids = Array.from(new Set((invoiceIds ?? []).map(String))).filter(Boolean);
+    setSelectedInvoiceIds(new Set(ids));
+    setInvoiceMessage(null);
+    previewInvoices.mutate(ids);
+  };
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -288,7 +298,16 @@ function Adjustments() {
                         </label>
                         <button
                           type="button"
-                          onClick={() => previewInvoices.mutate()}
+                          onClick={() => startInvoicePreview(invoiceList.map((inv) => String(inv.id)))}
+                          className="btn btn-secondary btn-sm"
+                          disabled={invoiceList.length === 0 || previewInvoices.isPending}
+                          title="Prévisualise puis importe toutes les factures synchronisées."
+                        >
+                          {previewInvoices.isPending ? "Préparation…" : `Importer tout (${invoiceList.length})`}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startInvoicePreview(Array.from(selectedInvoiceIds.values()))}
                           className="btn btn-primary btn-sm"
                           disabled={selectedCount === 0 || previewInvoices.isPending}
                         >
@@ -306,6 +325,7 @@ function Adjustments() {
                             <th className="px-3 py-2">Client</th>
                             <th className="px-3 py-2">Date</th>
                             <th className="px-3 py-2">Statut</th>
+                            <th className="px-3 py-2 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-ink-100 bg-white">
@@ -336,6 +356,17 @@ function Adjustments() {
                                   {inv.date ? new Date(inv.date).toLocaleDateString("fr-FR") : "—"}
                                 </td>
                                 <td className="px-3 py-2 text-ink-600">{inv.status ?? "—"}</td>
+                                <td className="px-3 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => startInvoicePreview([id])}
+                                    className="btn btn-xs btn-primary"
+                                    disabled={previewInvoices.isPending}
+                                    title="Prévisualise puis importe cette facture."
+                                  >
+                                    {previewInvoices.isPending ? "Préparation…" : "Importer"}
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
