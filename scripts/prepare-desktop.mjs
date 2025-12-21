@@ -14,6 +14,14 @@ function npmCmd() {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
+function npmInvocation(args) {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath) {
+    return { command: process.execPath, args: [npmExecPath, ...args] };
+  }
+  return { command: npmCmd(), args };
+}
+
 async function run(command, args, options = {}) {
   await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -49,7 +57,8 @@ async function main() {
 
   await run("node", [prismaCli, "generate", "--schema", "prisma/schema.prisma"], { cwd: coreDir, env });
   await run("node", [prismaCli, "generate", "--schema", "prisma/master.prisma"], { cwd: coreDir, env });
-  await run(npmCmd(), ["--prefix", coreDir, "run", "build"], { env });
+  const npmBuild = npmInvocation(["run", "build"]);
+  await run(npmBuild.command, npmBuild.args, { cwd: coreDir, env });
 
   await mkdir(bundledCoreDir, { recursive: true });
   await cp(path.join(coreDir, "dist"), path.join(bundledCoreDir, "dist"), { recursive: true });
