@@ -2,10 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, HashRouter } from "react-router-dom";
 import { ToastProvider } from "./components/ToastProvider";
 import { AuthProvider } from "./components/AuthProvider";
 import App from "./App";
+import { isTauriRuntime } from "./lib/runtime";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -18,17 +19,18 @@ const queryClient = new QueryClient({
 });
 
 const root = document.getElementById("root") as HTMLElement;
+const Router = isTauriRuntime() ? HashRouter : BrowserRouter;
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <Router>
         <AuthProvider>
           <ToastProvider>
             <App />
           </ToastProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </Router>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </React.StrictMode>,

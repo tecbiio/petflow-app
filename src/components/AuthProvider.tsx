@@ -1,6 +1,6 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { api, setAuthToken } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -68,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string, tenant?: string) => {
     const res = await api.login(email, password, tenant);
+    if (res.token) {
+      setAuthToken(res.token);
+    }
     setUser(res.user);
     setStatus("authenticated");
   }, []);
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.logout();
     } finally {
+      setAuthToken(null);
       setUser(null);
       setStatus("unauthenticated");
       queryClient.removeQueries({ queryKey: ["axonaut-invoices-pending"] });

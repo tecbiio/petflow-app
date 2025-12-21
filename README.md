@@ -7,6 +7,25 @@ Interface React 18 + Vite + Tailwind pour piloter les produits, stocks, mouvemen
 - Copier `petflow-app/.env.example` vers `.env.local` puis définir `VITE_API_URL` (ex. `http://localhost:3000`).  
   Option : `VITE_USE_MOCKS=true` pour afficher l’UI sans backend.
 
+## Desktop (Tauri / macOS & Windows)
+Objectif : une app desktop “local-first” qui lance automatiquement le `petflow-core` en service local.
+
+Prérequis :
+- Rust (toolchain stable) + outils de build.
+- Windows : Microsoft Edge WebView2 Runtime.
+- macOS : Xcode Command Line Tools (`xcode-select --install`).
+
+Commandes :
+- Préparer les resources (bundle du core) : `npm run desktop:prepare`
+- Dev desktop : `npm run desktop:dev`
+- Build desktop : `npm run desktop:build`
+
+Notes :
+- En desktop, le routeur passe en `HashRouter` pour éviter les 404 sur rechargement.
+- Le core tourne sur `http://127.0.0.1:3000` et stocke ses DB SQLite dans le dossier “app data” de l’application.
+- Pour l’instant, il faut Node installé sur la machine (le core est lancé via `node`). Si Node n’est pas trouvé, définir `PETFLOW_NODE_BINARY=/chemin/vers/node`.
+- Identifiants par défaut (modifiable via env) : `PETFLOW_ADMIN_EMAIL=admin@local`, `PETFLOW_ADMIN_PASSWORD=admin`.
+
 ## Démarrage
 - Installer : `npm install`
 - Dev : `npm run dev -- --host` (ouvre sur `http://localhost:5173`)

@@ -13,12 +13,59 @@ import {
   StockValuationPoint,
   Packaging,
 } from "../types";
+import { isTauriRuntime } from "../lib/runtime";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : "http://localhost:3000");
+const DEFAULT_API_URL = "http://127.0.0.1:3000";
+const AUTH_TOKEN_STORAGE_KEY = "petflow_auth_token";
+
+function resolveApiUrl(): string {
+  const explicit = import.meta.env.VITE_API_URL;
+  if (explicit) return explicit;
+
+  if (typeof window === "undefined") return DEFAULT_API_URL;
+
+  const { protocol, hostname } = window.location;
+  const isHttp = protocol === "http:" || protocol === "https:";
+  const isTauriAssetOrigin = protocol === "tauri:" || hostname === "tauri.localhost";
+
+  if (!isHttp || isTauriAssetOrigin || !hostname) {
+    return DEFAULT_API_URL;
+  }
+
+  return `${protocol}//${hostname}:3000`;
+}
+
+const API_URL = resolveApiUrl();
+
+let cachedAuthToken: string | null | undefined;
+
+function getAuthToken(): string | null {
+  if (cachedAuthToken !== undefined) return cachedAuthToken;
+  if (!isTauriRuntime()) {
+    cachedAuthToken = null;
+    return cachedAuthToken;
+  }
+  try {
+    cachedAuthToken = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    cachedAuthToken = null;
+  }
+  return cachedAuthToken;
+}
+
+export function setAuthToken(token: string | null) {
+  cachedAuthToken = token;
+  if (!isTauriRuntime()) return;
+  try {
+    if (!token) {
+      localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    } else {
+      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    }
+  } catch {
+    // ignore
+  }
+}
 
 type ApiProduct = Omit<
   Product,
@@ -93,21 +140,24 @@ type InventoryPayload = {
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_URL}${path}`;
+  const token = getAuthToken();
   const headers: HeadersInit = {
     Accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options?.headers ?? {}),
   };
 
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: "include",
+    credentials: options?.credentials ?? (isTauriRuntime() ? "omit" : "include"),
   });
 
   if (!response.ok) {
     const text = await response.text();
     const message = text || response.statusText;
     if (response.status === 401) {
+      setAuthToken(null);
       throw new Error("Authentification requise. Merci de vous reconnecter.");
     }
     throw new Error(`API ${response.status}: ${message}`);
@@ -534,10 +584,13 @@ export const api = {
     email: string,
     password: string,
     tenant?: string,
-  ): Promise<{ user: { email: string; role: string; tenant: string; dbUrl?: string }; expiresAt: number }> =>
+  ): Promise<{ user: { email: string; role: string; tenant: string; dbUrl?: string }; expiresAt: number; token?: string }> =>
     fetchJson("/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(isTauriRuntime() ? { "x-petflow-auth-mode": "bearer" } : {}),
+      },
       body: JSON.stringify({ email, password, tenant }),
     }),
 
