@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "../lib/queryClient";
 import { api } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
 import { useToast } from "../components/ToastProvider";

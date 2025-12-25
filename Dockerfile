@@ -14,6 +14,7 @@ RUN npm run build
 FROM base AS runtime
 WORKDIR /app
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 ENV PORT=5173
 EXPOSE 5173

@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "../lib/queryClient";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useProduct } from "../hooks/useProducts";
 import { useProductStock, useProductVariations } from "../hooks/useStock";

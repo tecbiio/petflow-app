@@ -1,5 +1,5 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "../lib/queryClient";
 import { api } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
 

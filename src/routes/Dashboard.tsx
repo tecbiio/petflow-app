@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "../lib/queryClient";
 import MovementInventoryModal from "../components/MovementInventoryModal";
 import ConfirmModal from "../components/ConfirmModal";
 import StatCard from "../components/StatCard";

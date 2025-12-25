@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "../lib/queryClient";
 import { useStockLocations } from "../hooks/useStockLocations";
 import { api } from "../api/client";
 import Modal from "../components/ui/Modal";

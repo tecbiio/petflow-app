@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "../lib/queryClient";
 import { api } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
 import PageHeader from "../components/ui/PageHeader";

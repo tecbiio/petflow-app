@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "../lib/queryClient";
 import UploadDropzone from "../components/UploadDropzone";
 import ConfirmModal from "../components/ConfirmModal";
 import { useProducts } from "../hooks/useProducts";

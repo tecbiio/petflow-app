@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "../lib/queryClient";
 import { api } from "../api/client";
 import { Product, StockLocation } from "../types";
 import SelectListModal from "./SelectListModal";

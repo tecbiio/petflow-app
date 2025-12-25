@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "../lib/queryClient";
 import { api } from "../api/client";
 import PageHeader from "../components/ui/PageHeader";
 

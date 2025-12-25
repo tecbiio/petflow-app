@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "../lib/queryClient";
 import ConfirmModal from "./ConfirmModal";
 import { api } from "../api/client";
 import { DocumentType, ParsedDocumentLine, MovementSign } from "../types";
