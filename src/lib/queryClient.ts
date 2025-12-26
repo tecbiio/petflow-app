@@ -18,6 +18,7 @@ type CacheEntry = {
   keyParts: readonly unknown[];
   data?: unknown;
   error?: Error | null;
+  stale: boolean;
   listeners: Set<CacheListener>;
 };
 
@@ -39,7 +40,7 @@ export class QueryClient {
     const hashed = hashKey(key);
     const existing = this.cache.get(hashed);
     if (existing) return existing;
-    const entry: CacheEntry = { keyParts: normalizeKey(key), listeners: new Set() };
+    const entry: CacheEntry = { keyParts: normalizeKey(key), listeners: new Set(), stale: false };
     this.cache.set(hashed, entry);
     return entry;
   }
@@ -53,6 +54,7 @@ export class QueryClient {
     const next = typeof updater === "function" ? (updater as (prev: T | undefined) => T)(entry.data as T) : updater;
     entry.data = next;
     entry.error = null;
+    entry.stale = false;
     entry.listeners.forEach((listener) => listener({ type: "update" }));
   }
 
@@ -60,6 +62,7 @@ export class QueryClient {
     const prefix = normalizeKey(opts.queryKey);
     for (const entry of this.cache.values()) {
       if (!isPrefixMatch(entry.keyParts, prefix)) continue;
+      entry.stale = true;
       entry.listeners.forEach((listener) => listener({ type: "invalidate" }));
     }
   }
@@ -70,8 +73,13 @@ export class QueryClient {
       if (!isPrefixMatch(entry.keyParts, prefix)) continue;
       entry.data = undefined;
       entry.error = null;
+      entry.stale = false;
       entry.listeners.forEach((listener) => listener({ type: "remove" }));
     }
+  }
+
+  isStale(key: QueryKey): boolean {
+    return this.cache.get(hashKey(key))?.stale ?? false;
   }
 
   async fetchQuery<T = unknown>(opts: { queryKey: QueryKey; queryFn: () => Promise<T> }): Promise<T> {
@@ -131,12 +139,16 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
     };
   }, []);
 
-  const fetchData = useCallback(async (): Promise<T | undefined> => {
+  const fetchData = useCallback(async (opts?: { background?: boolean }): Promise<T | undefined> => {
     if (!enabled) return undefined;
     if (inFlightRef.current) return client.getQueryData<T>(queryKey);
     inFlightRef.current = true;
+    const hasData = client.getQueryData<T>(queryKey) !== undefined;
+    const showLoading = !(opts?.background && hasData);
     if (mountedRef.current) {
-      setIsLoading(true);
+      if (showLoading) {
+        setIsLoading(true);
+      }
       setError(null);
     }
     try {
@@ -165,9 +177,13 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
       return;
     }
     const cached = client.getQueryData<T>(queryKey);
+    const stale = client.isStale(queryKey);
     if (cached !== undefined) {
       setData(cached);
       setIsLoading(false);
+      if (stale) {
+        void fetchData({ background: true });
+      }
       return;
     }
     void fetchData();
@@ -184,7 +200,8 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
         return;
       }
       if (!enabled) return;
-      void fetchData();
+      const cached = client.getQueryData<T>(queryKey);
+      void fetchData({ background: cached !== undefined });
     });
   }, [client, enabled, fetchData, keyHash]);
 
@@ -232,16 +249,24 @@ export function useQueries({ queries }: UseQueriesOptions): UseQueryResult<any>[
   );
 
   const runQuery = useCallback(
-    async (index: number) => {
+    async (index: number, opts?: { background?: boolean }) => {
       const current = queriesRef.current[index];
       if (!current || current.enabled === false) return undefined;
       const key = hashKey(current.queryKey);
       if (inFlight.current.has(key)) return undefined;
       inFlight.current.add(key);
+      const hasData = client.getQueryData(current.queryKey) !== undefined;
+      const showLoading = !(opts?.background && hasData);
       if (mountedRef.current) {
         setStates((prev) => {
           const next = [...prev];
-          if (next[index]) next[index] = { ...next[index], isLoading: true, error: null };
+          if (next[index]) {
+            next[index] = {
+              ...next[index],
+              isLoading: showLoading ? true : next[index].isLoading,
+              error: null,
+            };
+          }
           return next;
         });
       }
@@ -301,7 +326,8 @@ export function useQueries({ queries }: UseQueriesOptions): UseQueryResult<any>[
           return;
         }
         if (query.enabled === false) return;
-        void runQuery(index);
+        const cached = client.getQueryData(query.queryKey);
+        void runQuery(index, { background: cached !== undefined });
       }),
     );
     return () => {
@@ -313,8 +339,10 @@ export function useQueries({ queries }: UseQueriesOptions): UseQueryResult<any>[
     queriesRef.current.forEach((query, index) => {
       if (query.enabled === false) return;
       const cached = client.getQueryData(query.queryKey);
-      if (cached !== undefined) return;
-      void runQuery(index);
+      const stale = client.isStale(query.queryKey);
+      if (cached === undefined || stale) {
+        void runQuery(index, { background: cached !== undefined });
+      }
     });
   }, [client, enabledSignature, runQuery, signature]);
 
