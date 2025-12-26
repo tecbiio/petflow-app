@@ -11,7 +11,8 @@ function Locations() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [activeOnly, setActiveOnly] = useState(true);
-  const { data: locations = [] } = useStockLocations({ active: activeOnly ? true : undefined });
+  const locationsQuery = useStockLocations({ active: activeOnly ? true : undefined });
+  const locations = locationsQuery.data ?? [];
   const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -24,14 +25,19 @@ function Locations() {
   const createLocation = useMutation({
     mutationFn: api.createStockLocation,
     onSuccess: (created) => {
-      setMessage(`Emplacement créé via PUT /stock-locations (#${created.id})`);
+      toast(`Emplacement créé (#${created.id})`, "success");
+      setMessage(null);
       setName("");
       setCode("");
       setIsActive(true);
       setIsDefault(false);
+      setShowCreateModal(false);
       queryClient.invalidateQueries({ queryKey: ["stockLocations"] });
     },
-    onError: (error: Error) => setMessage(error.message),
+    onError: (error: Error) => {
+      setMessage(error.message);
+      toast(error.message, "error");
+    },
   });
 
   const updateLocation = useMutation({
@@ -117,11 +123,19 @@ function Locations() {
         <span className="text-sm font-semibold text-ink-700">{filtered.length} résultats</span>
       </div>
 
+      {locationsQuery.isError ? (
+        <div className="panel border-rose-200 bg-rose-50 text-rose-700">
+          Erreur chargement des emplacements : {locationsQuery.error?.message}
+        </div>
+      ) : null}
+
       {filtered.length === 0 ? (
         <EmptyState
           title="Aucun emplacement"
           description={
-            hasActiveFilters ? "Aucun résultat pour ces filtres." : "Crée un emplacement pour commencer."
+            hasActiveFilters
+              ? "Aucun résultat pour ces filtres."
+              : "Crée un emplacement pour commencer ou affiche les inactifs."
           }
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">

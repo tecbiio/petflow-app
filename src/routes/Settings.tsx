@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../lib/queryClient";
 import { api } from "../api/client";
 import { useSettings } from "../hooks/useSettings";
@@ -10,7 +10,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import PageHeader from "../components/ui/PageHeader";
 
 function Settings() {
-  const { settings, update, reset, defaultColor } = useSettings();
+  const { settings, update } = useSettings();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [confirmImportOpen, setConfirmImportOpen] = useState(false);
@@ -41,36 +41,36 @@ function Settings() {
   const familiesQuery = useFamilies();
   const packagingsQuery = usePackagings();
 
-  const saveSettings = useMutation({
+  const saveHusseConfig = useMutation({
     mutationFn: async () => {
-      const tasks: Promise<unknown>[] = [];
-      const axonautKey = settings.axonautApiKey?.trim();
-      const hasRemoteAxonautKey = axonautConfig.data?.hasApiKey === true;
-      const shouldPushAxonaut = Boolean(axonautKey) || !hasRemoteAxonautKey;
-
-      if (shouldPushAxonaut) {
-        if (!axonautKey) {
-          throw new Error("Ajoutez la clé API Axonaut avant de sauvegarder.");
-        }
-        tasks.push(api.axonautSetConfig({ apiKey: axonautKey }));
-      }
-
       const husseUsername = settings.husseUsername?.trim();
       const hussePassword = settings.hussePassword?.trim();
-      if (husseUsername && hussePassword) {
-        tasks.push(api.husseSetConfig({ username: husseUsername, password: hussePassword }));
+      if (!husseUsername && !hussePassword) {
+        throw new Error("Ajoutez des identifiants Husse.");
       }
-
-      if (tasks.length === 0) {
-        throw new Error("Aucun paramètre à sauvegarder.");
+      if (!husseUsername || !hussePassword) {
+        throw new Error("Renseignez l'email et le mot de passe Husse.");
       }
-
-      await Promise.all(tasks);
+      await api.husseSetConfig({ username: husseUsername, password: hussePassword });
     },
     onSuccess: () => {
-      toast("Paramètres sauvegardés", "success");
-      axonautConfig.refetch();
+      toast("Identifiants Husse sauvegardés", "success");
       husseConfig.refetch();
+    },
+    onError: (err: Error) => toast(err.message, "error"),
+  });
+
+  const saveAxonautConfig = useMutation({
+    mutationFn: async () => {
+      const axonautKey = settings.axonautApiKey?.trim();
+      if (!axonautKey) {
+        throw new Error("Ajoutez une clé API Axonaut.");
+      }
+      await api.axonautSetConfig({ apiKey: axonautKey });
+    },
+    onSuccess: () => {
+      toast("Clé Axonaut sauvegardée", "success");
+      axonautConfig.refetch();
     },
     onError: (err: Error) => toast(err.message, "error"),
   });
@@ -146,12 +146,6 @@ function Settings() {
     },
     onError: (err: Error) => toast(err.message, "error"),
   });
-
-  const handleSaveAll = (e: FormEvent) => {
-    e.preventDefault();
-    if (saveSettings.isPending) return;
-    saveSettings.mutate();
-  };
 
   const markChange = (patch: Partial<typeof settings>) => {
     update(patch);
@@ -279,6 +273,14 @@ function Settings() {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
+            onClick={() => saveHusseConfig.mutate()}
+            className="btn btn-primary"
+            disabled={saveHusseConfig.isPending}
+          >
+            {saveHusseConfig.isPending ? "Sauvegarde…" : "Enregistrer les identifiants"}
+          </button>
+          <button
+            type="button"
             onClick={() => setConfirmImportOpen(true)}
             className="btn btn-outline"
             disabled={importHusseProducts.isPending}
@@ -300,7 +302,7 @@ function Settings() {
             <span className="pill bg-ink-50 text-ink-700">Aucune clé enregistrée</span>
           )}
         </div>
-        <form className="mt-3 space-y-3" onSubmit={handleSaveAll}>
+        <div className="mt-3 space-y-3">
           <label className="text-sm text-ink-700 relative">
             Clé API
             <input
@@ -311,8 +313,16 @@ function Settings() {
               placeholder={axonautConfig.data?.hasApiKey ? "••••••••••••" : undefined}
             />
           </label>
-        </form>
+        </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => saveAxonautConfig.mutate()}
+            className="btn btn-primary"
+            disabled={saveAxonautConfig.isPending}
+          >
+            {saveAxonautConfig.isPending ? "Sauvegarde…" : "Enregistrer la clé"}
+          </button>
           <button
             type="button"
             onClick={() => importAxonautProducts.mutate()}
@@ -363,17 +373,6 @@ function Settings() {
             </div>
           ) : null}
         </div>
-      </div>
-
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={handleSaveAll}
-          className="btn btn-primary"
-          disabled={saveSettings.isPending || axonautConfig.isLoading || husseConfig.isLoading}
-        >
-          {saveSettings.isPending ? "Sauvegarde…" : "Sauvegarder tous les réglages"}
-        </button>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">

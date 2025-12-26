@@ -120,6 +120,7 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
   const client = useQueryClient();
   const keyHash = useMemo(() => hashKey(queryKey), [queryKey]);
   const mountedRef = useRef(true);
+  const inFlightRef = useRef(false);
   const [data, setData] = useState<T | undefined>(() => client.getQueryData<T>(queryKey));
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(enabled && data === undefined);
@@ -132,6 +133,8 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
 
   const fetchData = useCallback(async (): Promise<T | undefined> => {
     if (!enabled) return undefined;
+    if (inFlightRef.current) return client.getQueryData<T>(queryKey);
+    inFlightRef.current = true;
     if (mountedRef.current) {
       setIsLoading(true);
       setError(null);
@@ -151,6 +154,8 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
         setIsLoading(false);
       }
       return undefined;
+    } finally {
+      inFlightRef.current = false;
     }
   }, [client, enabled, queryFn, queryKey]);
 
@@ -165,10 +170,8 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
       setIsLoading(false);
       return;
     }
-    if (!isLoading) {
-      void fetchData();
-    }
-  }, [client, enabled, fetchData, isLoading, keyHash]);
+    void fetchData();
+  }, [client, enabled, fetchData, keyHash]);
 
   useEffect(() => {
     return client.subscribe(queryKey, (event) => {
@@ -181,11 +184,9 @@ export function useQuery<T = any>(options: UseQueryOptions<T>): UseQueryResult<T
         return;
       }
       if (!enabled) return;
-      if (!isLoading) {
-        void fetchData();
-      }
+      void fetchData();
     });
-  }, [client, enabled, fetchData, isLoading, keyHash]);
+  }, [client, enabled, fetchData, keyHash]);
 
   return {
     data,

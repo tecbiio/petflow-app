@@ -106,7 +106,18 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const text = await response.text();
-    const message = text || response.statusText;
+    let message = text || response.statusText;
+    const contentType = response.headers.get("content-type") || "";
+    if (text && contentType.includes("application/json")) {
+      try {
+        const parsed = JSON.parse(text) as { message?: string };
+        if (typeof parsed.message === "string") {
+          message = parsed.message;
+        }
+      } catch {
+        // Keep raw text if JSON parsing fails.
+      }
+    }
     if (response.status === 401) {
       throw new Error("Authentification requise. Merci de vous reconnecter.");
     }
