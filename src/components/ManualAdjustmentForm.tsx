@@ -32,7 +32,7 @@ function ManualAdjustmentForm({ products, locations }: Props) {
       setQuantity(0);
       setReason("");
       setType("ADJUST");
-      queryClient.invalidateQueries({ queryKey: ["movements", productId] });
+      queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
       queryClient.invalidateQueries({ queryKey: ["stock", productId] });
       queryClient.invalidateQueries({ queryKey: ["stock", productId, "variations"] });
     },

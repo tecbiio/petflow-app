@@ -32,6 +32,7 @@ function Movements() {
   const {
     data: movements = [],
     isLoading: loadingMovements,
+    refetch: refetchMovements,
   } = useQuery({
     queryKey: ["stock-movements", productId, reasonsKey],
     queryFn: () =>
@@ -45,6 +46,7 @@ function Movements() {
   const {
     data: inventories = [],
     isLoading: loadingInventories,
+    refetch: refetchInventories,
   } = useQuery({
     queryKey: ["inventories", productId],
     queryFn: () => api.listInventories(productId ? { productId } : undefined),
@@ -79,6 +81,16 @@ function Movements() {
       filterAnchor.update();
     }
   }, [productFilterFocused, filterAnchor]);
+
+  useEffect(() => {
+    if (typeFilter === "movement") {
+      void refetchMovements();
+      return;
+    }
+    if (typeFilter === "inventory") {
+      void refetchInventories();
+    }
+  }, [refetchInventories, refetchMovements, typeFilter]);
 
   const combined = useMemo(() => {
     const rows: Array<

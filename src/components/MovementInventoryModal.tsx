@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "../lib/queryClient";
 import { api } from "../api/client";
 import { Inventory, Product, StockLocation, StockMovement } from "../types";
@@ -125,12 +125,32 @@ function MovementInventoryModal({
     setFormMessage(null);
   };
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       resetForm();
     }
+    wasOpenRef.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialModeResolved, defaultProductId, defaultLocationId, products, locations]);
+
+  useEffect(() => {
+    if (!isOpen || movementProductId || !defaultProductId) return;
+    const label = products.find((p) => p.id === defaultProductId)?.name ?? "";
+    setMovementProductId(defaultProductId);
+    setMovementProductSearch(label);
+  }, [defaultProductId, isOpen, movementProductId, products]);
+
+  useEffect(() => {
+    if (!isOpen || movementLocationId) return;
+    const fallback =
+      defaultLocationId ?? locations.find((l) => l.isDefault)?.id ?? locations[0]?.id ?? undefined;
+    if (!fallback) return;
+    const label = locations.find((l) => l.id === fallback)?.name ?? "";
+    setMovementLocationId(fallback);
+    setMovementLocationSearch(label);
+  }, [defaultLocationId, isOpen, locations, movementLocationId]);
 
   const createMovement = useMutation({
     mutationFn: api.createStockMovement,
