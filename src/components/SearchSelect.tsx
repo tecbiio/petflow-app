@@ -56,7 +56,7 @@ export function SearchSelect({
           </button>
         ) : null}
       </div>
-      {focused && search.trim() && anchor.rect
+      {focused && anchor.rect
         ? createPortal(
             <div
               className="z-[5500] anim-popover-in max-h-48 overflow-auto rounded-lg border border-ink-100 bg-white shadow-lg"

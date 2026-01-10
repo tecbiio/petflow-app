@@ -81,7 +81,6 @@ function MovementInventoryModal({
             p.name.toLowerCase().includes(movementProductSearch.toLowerCase()) ||
             p.sku.toLowerCase().includes(movementProductSearch.toLowerCase()),
         )
-        .slice(0, 10)
         .map((p) => ({ id: p.id, label: p.name, hint: p.sku })),
     [products, movementProductSearch],
   );
@@ -94,7 +93,6 @@ function MovementInventoryModal({
             l.name.toLowerCase().includes(movementLocationSearch.toLowerCase()) ||
             l.code.toLowerCase().includes(movementLocationSearch.toLowerCase()),
         )
-        .slice(0, 10)
         .map((l) => ({ id: l.id, label: l.name, hint: l.code })),
     [locations, movementLocationSearch],
   );

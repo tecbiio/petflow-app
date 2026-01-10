@@ -331,6 +331,22 @@ function ProductDetail() {
       <div className="glass-panel p-5 space-y-4">
         <form className="space-y-4" onSubmit={handleSaveProduct}>
           <div className="flex flex-wrap items-start gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-24 w-24 overflow-hidden rounded-xl border border-ink-100 bg-ink-50 sm:h-32 sm:w-32">
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-ink-400">
+                    Aucune image
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="flex-1 min-w-[260px] space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-wide text-ink-500">{product.sku}</span>

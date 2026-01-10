@@ -17,6 +17,7 @@ export type Product = {
   sku: string;
   stockThreshold: number;
   description: string | null;
+  imageUrl?: string | null;
   price: number;
   priceVdiHt: number;
   priceDistributorHt: number;
