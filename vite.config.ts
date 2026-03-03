@@ -7,12 +7,12 @@ export default defineConfig({
     strictPort: true,
     host: true,
     port: 5173,
-    allowedHosts: ["www.mypetflow.fr", "mypetflow.fr"],
+    allowedHosts: true,
   },
   preview: {
     strictPort: true,
     host: true,
     port: 5173,
-    allowedHosts: ["www.mypetflow.fr", "mypetflow.fr"],
+    allowedHosts: true,
   },
 });
