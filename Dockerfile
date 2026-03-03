@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM deps AS build
-ARG VITE_API_URL=http://localhost:3000
+ARG VITE_API_URL=https://mypetflow.fr/api
 ENV VITE_API_URL=$VITE_API_URL
 COPY . .
 RUN npm run build
