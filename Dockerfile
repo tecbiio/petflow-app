@@ -16,6 +16,8 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/vite.config.ts ./
+
 ENV PORT=5173
 EXPOSE 5173
 CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
