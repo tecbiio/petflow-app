@@ -4,13 +4,15 @@ Interface React 18 + Vite + Tailwind pour piloter les produits, stocks, mouvemen
 
 ## Prérequis
 - Node 20+, npm.
-- Copier `petflow-app/.env.example` vers `.env.local` puis définir `VITE_API_URL` (ex. `http://localhost:3000`).  
-  Option : `VITE_USE_MOCKS=true` pour afficher l’UI sans backend.
+- Copier `petflow-app/.env.example` vers `.env.local` puis définir `VITE_API_URL` pour le dev local (ex. `http://localhost:3000`).  
+- En Docker, la valeur effective provient du `build.args.VITE_API_URL` de `docker-compose.yml`, pas de `.env.local`.
+- Option : `VITE_USE_MOCKS=true` pour afficher l’UI sans backend.
 
 ## Démarrage
 - Installer : `npm install`
 - Dev : `npm run dev -- --host` (ouvre sur `http://localhost:5173`)
 - Build/preview : `npm run build && npm run preview -- --host`
+- `VITE_API_URL` est injecté au build. Si l’URL change, il faut reconstruire le front.
 
 ## Connexion et données
 - L’API ciblée doit être le core (`petflow-core`) avec les bases initialisées (master + base du tenant).
@@ -28,4 +30,8 @@ Interface React 18 + Vite + Tailwind pour piloter les produits, stocks, mouvemen
   - page `Documents` → "Importer des factures Axonaut" (sélection, prévisualisation, import unitaire ou import complet).
 
 ## Docker
-- Via la racine du repo : `docker-compose up --build petflow-app` (dépend de `petflow-core` et `pdf2json` déjà lancés ou dans le même `up`).
+- Via la racine du repo : `docker compose up --build petflow-app` (dépend de `petflow-core` et `pdf2json` déjà lancés ou dans le même `up`).
+- Si `VITE_API_URL` change, forcer un rebuild :
+  - `docker compose build --no-cache petflow-app`
+  - `docker compose up -d --force-recreate petflow-app`
+- Pour vérifier la valeur effective injectée en Docker : `docker compose config`
